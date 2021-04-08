@@ -1,0 +1,28 @@
+CREATE TABLE utilizadores (
+	userid	 SERIAL,
+	username VARCHAR(512) UNIQUE NOT NULL,
+	email	 VARCHAR(512) UNIQUE NOT NULL,
+	password VARCHAR(512) NOT NULL,
+	PRIMARY KEY(userid)
+);
+
+CREATE TABLE leiloes (
+	id			 SERIAL,
+	titulo		 VARCHAR(512) NOT NULL,
+	descricao		 VARCHAR(8192),
+	precomin		 INTEGER NOT NULL,
+	data		 TIMESTAMP NOT NULL,
+	artigos_artigoid	 INTEGER,
+	utilizadores_userid INTEGER,
+	PRIMARY KEY(id)
+);
+
+CREATE TABLE artigos (
+	artigoid	 SERIAL,
+	nome	 VARCHAR(512) NOT NULL,
+	descricao VARCHAR(2048),
+	PRIMARY KEY(artigoid)
+);
+
+ALTER TABLE leiloes ADD CONSTRAINT leiloes_fk1 FOREIGN KEY (artigos_artigoid) REFERENCES artigos(artigoid);
+ALTER TABLE leiloes ADD CONSTRAINT leiloes_fk2 FOREIGN KEY (utilizadores_userid) REFERENCES utilizadores(userid);
