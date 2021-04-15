@@ -3,6 +3,8 @@ CREATE TABLE utilizadores (
 	username VARCHAR(512) UNIQUE NOT NULL,
 	email	 VARCHAR(512) UNIQUE NOT NULL,
 	password VARCHAR(512) NOT NULL,
+	nome	 VARCHAR(512),
+	morada	 VARCHAR(512),
 	PRIMARY KEY(userid)
 );
 
@@ -25,5 +27,21 @@ CREATE TABLE artigos (
 	PRIMARY KEY(artigoid)
 );
 
+CREATE TABLE mural (
+	id				 SERIAL,
+	comentario			 VARCHAR(512) NOT NULL,
+	resposta			 VARCHAR(512),
+	leiloes_id			 INTEGER,
+	leiloes_artigos_artigoid	 INTEGER,
+	leiloes_utilizadores_userid INTEGER,
+	PRIMARY KEY(id)
+);
+
+
+ALTER TABLE utilizadores ADD CONSTRAINT strong_password CHECK (password SIMILAR TO '%[A-Z]%' AND password SIMILAR TO '%[a-z]%' AND password SIMILAR TO '%[0-9]%' AND LENGTH(password) > 8);
+ALTER TABLE utilizadores ADD CONSTRAINT username_length CHECK (LENGTH(username) > 6);
+ALTER TABLE utilizadores ADD CONSTRAINT email_verification CHECK (email LIKE '%@%.%');
 ALTER TABLE leiloes ADD CONSTRAINT leiloes_fk1 FOREIGN KEY (artigos_artigoid) REFERENCES artigos(artigoid);
 ALTER TABLE leiloes ADD CONSTRAINT leiloes_fk2 FOREIGN KEY (utilizadores_userid) REFERENCES utilizadores(userid);
+ALTER TABLE mural ADD CONSTRAINT mural_fk1 FOREIGN KEY (leiloes_id) REFERENCES leiloes(id);
+ALTER TABLE mural ADD CONSTRAINT mural_fk2 FOREIGN KEY (leiloes_utilizadores_userid) REFERENCES leiloes(utilizadores_userid);
