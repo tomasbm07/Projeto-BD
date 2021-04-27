@@ -1,4 +1,4 @@
-CREATE TABLE utilizadores (
+CREATE TABLE utilizador (
 	userid	 SERIAL,
 	username VARCHAR(512) UNIQUE NOT NULL,
 	email	 VARCHAR(512) UNIQUE NOT NULL,
@@ -8,15 +8,16 @@ CREATE TABLE utilizadores (
 	PRIMARY KEY(userid)
 );
 
-CREATE TABLE leiloes (
-	id			 SERIAL,
+CREATE TABLE leilao (
+	id		 SERIAL,
 	titulo		 VARCHAR(512) NOT NULL,
-	descricao		 VARCHAR(8192),
+	descricao	 VARCHAR(8192),
 	precomin		 INTEGER NOT NULL,
+	precoatual	 INTEGER NOT NULL DEFAULT 0,
+	idutlizador	 INTEGER,
 	data		 TIMESTAMP NOT NULL,
-	mural		 VARCHAR(1048576),
-	artigos_artigoid	 INTEGER,
-	utilizadores_userid INTEGER,
+	artigos_artigoid	 INTEGER NOT NULL,
+	utilizador_userid INTEGER NOT NULL,
 	PRIMARY KEY(id)
 );
 
@@ -27,21 +28,30 @@ CREATE TABLE artigos (
 	PRIMARY KEY(artigoid)
 );
 
-CREATE TABLE mural (
-	id				 SERIAL,
-	comentario			 VARCHAR(512) NOT NULL,
-	resposta			 VARCHAR(512),
-	leiloes_id			 INTEGER,
-	leiloes_artigos_artigoid	 INTEGER,
-	leiloes_utilizadores_userid INTEGER,
-	PRIMARY KEY(id)
+CREATE TABLE comentario (
+	id		 SERIAL,
+	comentario	 VARCHAR(512) NOT NULL,
+	resposta		 VARCHAR(512),
+	leilao_id	 INTEGER,
+	utilizador_userid INTEGER,
+	PRIMARY KEY(id,leilao_id,utilizador_userid)
 );
 
+CREATE TABLE licitacao (
+	idlicitacao	 SERIAL,
+	valorlicitacao	 INTEGER NOT NULL,
+	data		 TIMESTAMP NOT NULL,
+	leilao_id	 INTEGER,
+	utilizador_userid INTEGER,
+	PRIMARY KEY(idlicitacao,leilao_id,utilizador_userid)
+);
 
-ALTER TABLE utilizadores ADD CONSTRAINT strong_password CHECK (password SIMILAR TO '%[A-Z]%' AND password SIMILAR TO '%[a-z]%' AND password SIMILAR TO '%[0-9]%' AND LENGTH(password) > 8);
-ALTER TABLE utilizadores ADD CONSTRAINT username_length CHECK (LENGTH(username) > 6);
-ALTER TABLE utilizadores ADD CONSTRAINT email_verification CHECK (email LIKE '%@%.%');
-ALTER TABLE leiloes ADD CONSTRAINT leiloes_fk1 FOREIGN KEY (artigos_artigoid) REFERENCES artigos(artigoid);
-ALTER TABLE leiloes ADD CONSTRAINT leiloes_fk2 FOREIGN KEY (utilizadores_userid) REFERENCES utilizadores(userid);
-ALTER TABLE mural ADD CONSTRAINT mural_fk1 FOREIGN KEY (leiloes_id) REFERENCES leiloes(id);
-ALTER TABLE mural ADD CONSTRAINT mural_fk2 FOREIGN KEY (leiloes_utilizadores_userid) REFERENCES leiloes(utilizadores_userid);
+ALTER TABLE utilizador ADD CONSTRAINT strong_password CHECK (password SIMILAR TO '%[A-Z]%' AND password SIMILAR TO '%[a-z]%' AND password SIMILAR TO '%[0-9]%' AND LENGTH(password) > 8);
+ALTER TABLE utilizador ADD CONSTRAINT username_length CHECK (LENGTH(username) > 5);
+ALTER TABLE utilizador ADD CONSTRAINT email_verification CHECK (email LIKE '%@%.%');
+ALTER TABLE leilao ADD CONSTRAINT leilao_fk1 FOREIGN KEY (artigos_artigoid) REFERENCES artigos(artigoid);
+ALTER TABLE leilao ADD CONSTRAINT leilao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
+ALTER TABLE comentario ADD CONSTRAINT comentario_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
+ALTER TABLE comentario ADD CONSTRAINT comentario_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
+ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
+ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
