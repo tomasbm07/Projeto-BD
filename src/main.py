@@ -1,6 +1,6 @@
 import psycopg2
 
-connection = psycopg2.connect(dbname="projetobd", user="alexandre", password="12345", host="127.0.0.1", port="5432")
+connection = psycopg2.connect(dbname="projetobd", user="admin", password="admin", host="127.0.0.1", port="5432")
 cursor = connection.cursor()
 
 def main():
