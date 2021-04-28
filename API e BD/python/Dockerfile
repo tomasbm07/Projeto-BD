@@ -15,6 +15,8 @@ run pip install flask
 
 run pip install psycopg2-binary
 
+run pip install python-dotenv
+
 copy . /app
 
 volume ["/app"]
