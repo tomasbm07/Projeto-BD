@@ -9,7 +9,7 @@ CREATE TABLE utilizador (
 );
 
 CREATE TABLE leilao (
-	id		 	 SERIAL,
+	id		 SERIAL,
 	titulo		 VARCHAR(512) NOT NULL,
 	descricao	 VARCHAR(8192),
 	precomin		 INTEGER NOT NULL,
@@ -46,6 +46,12 @@ CREATE TABLE licitacao (
 	PRIMARY KEY(idlicitacao,leilao_id,utilizador_userid)
 );
 
+CREATE TABLE autenticado (
+	token		 VARCHAR(1024) UNIQUE NOT NULL,
+	expiretime	 TIMESTAMP NOT NULL,
+	utilizador_userid INTEGER,
+	PRIMARY KEY(utilizador_userid)
+);
 
 ALTER TABLE leilao ADD CONSTRAINT leilao_fk1 FOREIGN KEY (artigos_artigoid) REFERENCES artigos(artigoid);
 ALTER TABLE leilao ADD CONSTRAINT leilao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
@@ -53,5 +59,7 @@ ALTER TABLE comentario ADD CONSTRAINT comentario_fk1 FOREIGN KEY (leilao_id) REF
 ALTER TABLE comentario ADD CONSTRAINT comentario_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
 ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
+ALTER TABLE autenticado ADD CONSTRAINT autenticado_fk1 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 
 INSERT INTO utilizador (username, email, password) VALUES 'admin', 'admin@projetobd.pt', 'password';
+
