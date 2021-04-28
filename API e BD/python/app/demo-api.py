@@ -220,7 +220,6 @@ def db_connection():
 ## MAIN
 ##########################################################
 if __name__ == "__main__":
-
     # Set up the logging
     logging.basicConfig(filename="logs/log_file.log")
     logger = logging.getLogger('logger')
@@ -229,21 +228,17 @@ if __name__ == "__main__":
     ch.setLevel(logging.DEBUG)
 
     # create formatter
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s]:  %(message)s',
-                              '%H:%M:%S')
-                              # "%Y-%m-%d %H:%M:%S") # not using DATE to simplify
+    # "%Y-%m-%d %H:%M:%S") # not using DATE to simplify
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s]:  %(message)s','%H:%M:%S')
+                              
     ch.setFormatter(formatter)
     logger.addHandler(ch)
 
-
-    time.sleep(1) # just to let the DB start before this print :-)
-
-
-    logger.info("\n---------------------------------------------------------------\n" + 
-                  "API v1.0 online: http://localhost:8080/departments/\n\n")
+    time.sleep(1) # just to let the DB start
 
 
-    
+    logger.info("\n\nAPI v1.0 online: http://localhost:8080/dbproj/\n\n")
+
 
     app.run(host="0.0.0.0", debug=True, threaded=True)
 

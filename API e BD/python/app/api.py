@@ -1,7 +1,21 @@
-import psycopg2
+import psycopg2, logging, time
 from flask import Flask, jsonify, request
 
+
 app = Flask(__name__)
+
+#Default page
+@app.route('/dbproj/') 
+def home(): 
+    return """
+    <center>
+        <h1> Projeto BD </h1>
+            Alexandre Andrade - 20192
+            <br>
+            Tomás Mendes - 2019232272
+    </center>
+    """
+
 
 #TODO DAR RETURN A TOKEN
 @app.route("/dbproj/user", methods=['PUT'], strict_slashes=True)
@@ -63,5 +77,25 @@ def db_connection():
 
 
 if __name__ == '__main__':
+    # Set up the logging
+    logging.basicConfig(filename="logs/log_file.log")
+    logger = logging.getLogger('logger')
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    # create formatter
+    # "%Y-%m-%d %H:%M:%S") # not using DATE to simplify
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s]:  %(message)s','%H:%M:%S')
+                              
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    time.sleep(1) # just to let the DB start
+
+
+    logger.info("\n\nAPI v1.0 online: http://localhost:8080/dbproj/\n\n")
+
+
     app.run(host="0.0.0.0", debug=True, threaded=True)
 
