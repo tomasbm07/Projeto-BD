@@ -1,11 +1,11 @@
 from flask import Flask, jsonify, request, Blueprint
 import psycopg2, logging, time
-from . import db_connection
+from . import db_connection, check_token
 from werkzeug.security import generate_password_hash, check_password_hash
 from uuid import uuid1
 
 
-endpoints = Blueprint('auth', __name__)
+endpoints = Blueprint('endpoints', __name__)
 
 
 #Default page
@@ -135,11 +135,11 @@ def leilao(leilao_id):
 	info_leilao = request.get_json()
 
 	if request.method == 'GET': # GET - buscar todos os leiloes
-		pass
+		return {}
 		
 	else: # PUT - editar um leilao
-		pass
-	pass
+		return {}
+	
 
 
 #TODO: fazer este endpoint
@@ -149,5 +149,5 @@ def leilao_bid(leilao_id, amount):
 	cursor = conn.cursor()
 
 
-	pass
+	return {}
 
