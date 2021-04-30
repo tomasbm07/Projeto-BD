@@ -13,7 +13,8 @@ def check_token(token):
     info = cursor.fetchone()
 
     #info[0] = "2021-04-28 18:14:43.925712"
-    if info is not None: # se o user tiver um token
+    # se o token existir na tabela, verificar se esta valido
+    if info is not None: 
         token_time = info[0].split('.')[0].split(' ')# "2021-04-28 18:14:43.925712" -> "2021-04-28 18:14:43" -> ["2021-04-28", "18:14:43"]
         token_time[0] = token_time.split('-')# ["2021", "04", "28"]
         token_time[1] = token_time.split(':')# ["18", "14", "43"]
@@ -24,25 +25,26 @@ def check_token(token):
         # verificar se o token ja expirou
         if time_aux - time_now > datetime.deltatime(hours = TOKEN_DURATION):
             cursor.execute( "DELETE FROM authtokens WHERE token = %s", (token, ) )
+            return 'Expired'
+        else:
+            return 'Valid'
+    else:
+        return 'Erro'
 
 
 def db_connection():
     load_dotenv()
+    
     DB_USER = os.getenv('DB_USER')
     DB_PASSWORD = os.getenv('DB_PASSWORD')
     DB_database = os.getenv('DB_database')
+
     db = psycopg2.connect(user=DB_USER,password=DB_PASSWORD,host="db",port="5432",database=DB_database)
 
     return db
 
 
-def start_app():
-    # start flask web server
-    app = Flask(__name__)
-
-    from .endpoints import endpoints
-    app.register_blueprint(endpoints, url_prefix='/')
-
+def start_logger():
     #Setup Logger
     logging.basicConfig(filename='logs/log_file.log')
     logger = logging.getLogger('logger')
@@ -56,6 +58,16 @@ def start_app():
 
     ch.setFormatter(formatter)
     logger.addHandler(ch)
+
+    return logger
+
+
+def start_app():
+    # start flask web server
+    app = Flask(__name__)
+
+    from .endpoints import endpoints
+    app.register_blueprint(endpoints, url_prefix='/')
   
-    return app, logger
+    return app
 

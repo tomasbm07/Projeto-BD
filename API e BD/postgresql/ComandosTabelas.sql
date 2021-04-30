@@ -9,12 +9,11 @@ CREATE TABLE utilizador (
 );
 
 CREATE TABLE leilao (
-	id		 SERIAL,
+	id		 INTEGER,
 	titulo		 VARCHAR(512) NOT NULL,
 	descricao	 VARCHAR(8192),
 	precomin		 INTEGER NOT NULL,
 	precoatual	 INTEGER NOT NULL DEFAULT 0,
-	idutlizador	 INTEGER,
 	data		 TIMESTAMP NOT NULL,
 	artigos_artigoid	 INTEGER NOT NULL,
 	utilizador_userid INTEGER NOT NULL,
@@ -22,7 +21,7 @@ CREATE TABLE leilao (
 );
 
 CREATE TABLE artigos (
-	artigoid	 SERIAL,
+	id	 SERIAL,
 	nome	 VARCHAR(512) NOT NULL,
 	descricao VARCHAR(2048),
 	PRIMARY KEY(artigoid)
@@ -38,12 +37,12 @@ CREATE TABLE comentario (
 );
 
 CREATE TABLE licitacao (
-	idlicitacao	 SERIAL,
-	valorlicitacao	 INTEGER NOT NULL,
+	id		 SERIAL,
+	valor		 INTEGER NOT NULL,
 	data		 TIMESTAMP NOT NULL,
 	leilao_id	 INTEGER,
 	utilizador_userid INTEGER,
-	PRIMARY KEY(idlicitacao,leilao_id,utilizador_userid)
+	PRIMARY KEY(id,leilao_id,utilizador_userid)
 );
 
 CREATE TABLE authTokens (
