@@ -121,7 +121,7 @@ def leilao_create():
     cursor = conn.cursor()
     info_leilao = request.get_json()
     
-    result = check_token()
+    result = check_token(info_leilao["userAuthToken"])
 
     if result == 'Expired':
         conn.close()
@@ -129,12 +129,26 @@ def leilao_create():
 
     elif result == 'Valid':
         if request.method == 'POST': # POST - criar leilao
-            conn.close()
-            pass
+            statement = """SELECT id FROM artigos WHERE id = %s;"""
+            cursor.execute(statement, (info_leilao["artigoId"], ))
+            artigo = cursor.fetchone()
+            if artigo is None:
+            	return {'erro': 'artigo nao existe!'}
+            else:
+            	statement = "SELECT userid FROM authtokens WHERE token = %s"
+            	cursor.execute(statement, (info_leilao["userAuthToken"], ))
+            	userid = cursor.fetchone()
+
+            	statement = "INSERT INTO leilao (titulo, descricao, precomin, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s) RETURNING id"
+            	cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["artigoId"], userid, ))
+            	leilao_id = cursor.fetchone()
+            	return {'leilaoId': leilao_id}
+
 
     else:
         conn.close()
         return {'erro' : "user isn\'t logged in"}
+
 
 
 
