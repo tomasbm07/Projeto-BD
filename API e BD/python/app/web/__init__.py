@@ -74,8 +74,11 @@ def start_logger():
 def start_app():
     # start flask web server
     app = Flask(__name__)
+    
+    app.config['JSON_SORT_KEYS'] = False
 
     from .endpoints import endpoints
     app.register_blueprint(endpoints, url_prefix='/')
   
     return app
+

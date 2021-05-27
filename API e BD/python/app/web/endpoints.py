@@ -232,16 +232,27 @@ def leilao(leilao_id):
     # GET - buscar todos os leiloes
     if request.method == 'GET':
         logger.info("#### GET - dbproj/leilao/<leilao_id> -> Procurar leilao por id ####")
+        mensagens = []
+        
         #get mensagens de outra tabela
+        statement = "SELECT comentario, resposta, utilizador_userid FROM comentario WHERE leilao_id = %s;"
+        cursor.execute(statement, (leilao_id, ))
+        info_mensagens = cursor.fetchall()
+
+        #TODO criar funçao para ir buscar username pelo userid
+        for row in info_mensagens:
+            mensagens.append([f"Comentário de {row[2]}:", f"{row[0]}", f"Resposta: {row[1]}"])
         
         conn.close()
+        #mensagens = ['boas', 'ola', 'hehexD']
         return {
                 'leilaoId': info[0],
-                'descricao' : info[1],
-                'precomin' : info[2],
-                'precoatual' : info[3],
-                'endDate' : info[4],
-                'mensagens' : 'nada por enquanto :)'
+                'titulo': info[1],
+                'descricao' : info[2],
+                'precomin' : info[3],
+                'precoatual' : info[4],
+                'endDate' : info[5],
+                'mensagens' : mensagens
                 }
 
     # PUT - editar um leilao
