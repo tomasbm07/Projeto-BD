@@ -43,7 +43,7 @@ CREATE TABLE comentario (
 CREATE TABLE licitacao (
 	id		 			SERIAL,
 	valor		 		INTEGER NOT NULL,
-	data		 		TIMESTAMP NOT NULL,
+	data		 		TIMESTAMP NOT NULL DEFAULT NOW(),
 	leilao_id	 		INTEGER,
 	utilizador_userid 	INTEGER,
 	PRIMARY KEY(id,leilao_id,utilizador_userid)

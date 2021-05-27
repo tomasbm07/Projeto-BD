@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, Blueprint
 import psycopg2, logging, time
 #from . import db_connection, check_token, start_logger
 from . import *
+from .functions import *
 from werkzeug.security import generate_password_hash, check_password_hash
 from uuid import uuid1
 
@@ -133,9 +134,7 @@ def leilao_create():
             if artigo is None:
                 return {'erro': 'artigo nao existe!'}
             else:
-                statement = "SELECT userid FROM authtokens WHERE token = %s;"
-                cursor.execute(statement, (info_leilao["userAuthToken"], ))
-                userid = cursor.fetchone()
+                userid = get_user_from_token(info_leilao["userAuthToken"])
 
                 statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
                 cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["endDate"], info_leilao["artigoId"], userid))
@@ -260,7 +259,39 @@ def leilao_bid(leilao_id, amount):
 
     conn = db_connection()
     cursor = conn.cursor()
+    token = request.get_json()
 
+    result = check_token(token["userAuthToken"])
 
-    return {}
+    if result == 'Expired':
+        conn.close()
+        return {'erro' : 'token expired'}
 
+    elif result == 'Valid':
+        try:
+            statement = "SELECT precoatual FROM leilao WHERE %s = id;"
+            cursor.execute(statement, (leilao_id))
+            preco = cursor.fetchone()
+        except:
+            conn.close()
+            return {'erro': "leilao id ins\'t valid!"}
+
+        try:
+            amount = int(amount)
+        except:
+            conn.close()
+            return {'erro': "amount inserted isn\'t valid!"}
+
+        if (amount <= preco):
+            conn.close()
+            return {'erro': "insert amount bigger then the current bid!"}
+        else:
+            userid = get_user_from_token(token["userAuthToken"])
+            statement = "INSERT INTO licitacao (valor, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
+            cursor.execute(statement, (amount, leilao_id, userid))
+            cursor.execute("commit;")
+            return {'Sucesso': "true"}
+
+    else:
+        conn.close()
+        return {'erro' : "user isn\'t logged in"}
