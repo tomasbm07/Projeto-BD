@@ -60,14 +60,18 @@ def user():
                     logger.debug(f"Login: {info[0]} -> id: {info[2]}")
                     conn.close()
                     return {'authToken': token}
-                else: # user ja tem um token
-                    #if check_token(aux[0]) == 'Valid':
-                    #    logger.debug("User ja fez login")
-                    #    conn.close()
-                    return {'warning': 'user ja fez login', 'authToken' : aux[0]}
-                    #else: # Expired
-                    #    conn.close()
-                    #    return {'warning': 'token has expired'}
+                else: #user ja tem um token
+                    x = check_token(aux[0])
+                    if x == 'Valid':
+                        logger.debug("User ja fez login")
+                        conn.close()
+                        return {'warning': 'user ja fez login', 'authToken' : aux[0]}
+                    elif x == 'Expired': # Expired
+                        conn.close()
+                        return {'warning': 'token has expired'}
+                    else:
+                        conn.close()
+                        return {'erro': "tokens does't exist"}
             else:
                 logger.debug("Erro de autenticacao")
                 conn.close()

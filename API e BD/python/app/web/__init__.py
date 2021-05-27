@@ -15,18 +15,18 @@ def check_token(token):
 
     #info[0] = "2021-04-28 18:14:43.925712"
     # se o token existir na tabela, verificar se esta valido
-    print(str(info[0]))
     if info is not None: 
-        token_time = str(info[0]).split('.')[0].split(' ') # "2021-04-28 18:14:43.925712" -> "2021-04-28 18:14:43" -> ["2021-04-28", "18:14:43"]
-        token_time[0] = token_time.split('-') # ["2021", "04", "28"]
-        token_time[1] = token_time.split(':') # ["18", "14", "43"]
+        token_time = (str(info[0])).split('.')[0].split(' ') # "2021-04-28 18:14:43.925712" -> "2021-04-28 18:14:43" -> ["2021-04-28", "18:14:43"]
+        token_time[0] = token_time[0].split('-') # ["2021", "04", "28"]
+        token_time[1] = token_time[1].split(':') # ["18", "14", "43"]
 
         time_aux = datetime.datetime(int(token_time[0][0]), int(token_time[0][1]),int(token_time[0][2]), int(token_time[1][0]),int(token_time[1][1]),int(token_time[1][2]))
         time_now = datetime.datetime.now()
         
         # verificar se o token ja expirou
-        if time_aux - time_now > datetime.deltatime(hours = TOKEN_DURATION):
-            cursor.execute( "DELETE FROM authtokens WHERE token = %s", (token, ) )
+        if time_now - time_aux > datetime.timedelta(hours = TOKEN_DURATION):
+            cursor.execute("DELETE FROM authtokens WHERE token = %s", (token, ))
+            conn.close()
             return 'Expired'
         else:
             return 'Valid'
