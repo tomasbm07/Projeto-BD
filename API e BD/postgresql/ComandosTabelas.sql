@@ -13,7 +13,7 @@ CREATE TABLE utilizador (
 );
 
 CREATE TABLE leilao (
-	id		 			INTEGER,
+	id		 			SERIAL,
 	titulo		 		VARCHAR(512) NOT NULL,
 	descricao	 		VARCHAR(8192),
 	precomin			INTEGER NOT NULL,
@@ -68,14 +68,14 @@ ALTER TABLE authTokens ADD CONSTRAINT autenticado_fk1 FOREIGN KEY (userid) REFER
 --------------ARTIGOS-------------
 ----------------------------------
 
-INSERT INTO artigos VALUES (1, 'PS5', '')
-INSERT INTO artigos VALUES (2, 'Batata', '')
-INSERT INTO artigos VALUES (3, 'Torradeira', '')
-INSERT INTO artigos VALUES (4, 'Gaming PC', '')
-INSERT INTO artigos VALUES (5, 'Sofá', '')
-INSERT INTO artigos VALUES (5, 'Ryzen 9 5950X', '')
-INSERT INTO artigos VALUES (6, 'ROG RTX 3090', '')
-INSERT INTO artigos VALUES (7, 'EVGA RTX 3080', '')
-INSERT INTO artigos VALUES (8, 'NVIDIA RTX 3060', '')
-INSERT INTO artigos VALUES (9, 'Intel Core i9-11900K', '')
-INSERT INTO artigos VALUES (10, 'MSI X570-A PRO', '')
+INSERT INTO artigos (nome, descricao) VALUES ('PS5', '');
+INSERT INTO artigos (nome, descricao) VALUES ('Batata', '');
+INSERT INTO artigos (nome, descricao) VALUES ('Torradeira', '');
+INSERT INTO artigos (nome, descricao) VALUES ('Gaming PC', '');
+INSERT INTO artigos (nome, descricao) VALUES ('Sofá', '');
+INSERT INTO artigos (nome, descricao) VALUES ('Ryzen 9 5950X', '');
+INSERT INTO artigos (nome, descricao) VALUES ('ROG RTX 3090', '');
+INSERT INTO artigos (nome, descricao) VALUES ('EVGA RTX 3080', '');
+INSERT INTO artigos (nome, descricao) VALUES ('NVIDIA RTX 3060', '');
+INSERT INTO artigos (nome, descricao) VALUES ('Intel Core i9-11900K', '');
+INSERT INTO artigos (nome, descricao) VALUES ('MSI X570-A PRO', '');
