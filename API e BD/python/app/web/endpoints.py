@@ -111,7 +111,6 @@ def user():
         conn.close()
 
 
-#TODO: fazer este endpoint
 @endpoints.route("/dbproj/leilao", methods=['POST'], strict_slashes=True)
 def leilao_create():
     logger.info("#### POST - dbproj/leilao -> Criar leilao ####")
@@ -138,11 +137,11 @@ def leilao_create():
                 cursor.execute(statement, (info_leilao["userAuthToken"], ))
                 userid = cursor.fetchone()
 
-                statement = "INSERT INTO leilao (titulo, descricao, precomin, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
-                cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["artigoId"], userid))
-                cursor.execute("commit;")
+                statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
+                cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["endDate"], info_leilao["artigoId"], userid))
                 leilao_id = cursor.fetchone()
-                return {'leilaoId': leilao_id}
+                cursor.execute("commit;")
+                return {'leilaoId': leilao_id[0]}
 
 
     else:
@@ -181,19 +180,43 @@ def get_leiloes(keyword):
 
     # GET - buscar todos os leiloes
     if request.method == 'GET':
-        cursor.execute("SELECT id, descricao from leilao WHERE id = %s;", (keyword, ))
-        info = cursor.fetchone()
+
+        info = None
+
+        try:
+            keyword = int(keyword)
+        except:
+            pass
+
+        if type(keyword)!=str:
+            cursor.execute("""SELECT leilao.id, leilao.descricao, artigos.id from leilao, artigos WHERE artigos_artigoid = artigos.id AND artigos.id = %s;""", (keyword, ))
+            info = cursor.fetchall();
 
         # leilao com id 'keyword' nao existe, procurar na descricao
         if info is None:
-            cursor.execute("SELECT id, descricao from leilao;")
+            cursor.execute("""SELECT leilao.id, leilao.descricao, artigos.nome from leilao, artigos WHERE artigos_artigoid = artigos.id AND artigos.nome = %s;""", (keyword, ))
             info = cursor.fetchall()
 
             for row in info:
-                if keyword in row[1]:
+                if str(keyword) == str(row[2]):
                     leiloes.append((row[0], row[1]))
             conn.close()
-            return jsonify(leiloes)
+            if leiloes != []:
+                return jsonify(leiloes)
+            else:
+                return {'erro': f"Nao encontrado nenhum leilao com artigo com nome {keyword}"}
+        else:
+            for row in info:
+                if str(keyword) == str(row[2]):
+                    leiloes.append((row[0], row[1]))
+            
+            conn.close()
+            if leiloes != []:
+                return jsonify(leiloes)
+            else:
+                return {'erro': f"Nao encontrado nenhum leilao com artigo de EAN {keyword}"}
+
+            
 
 
 #TODO: fazer este endpoint
