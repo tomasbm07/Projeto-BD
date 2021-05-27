@@ -108,7 +108,6 @@ def user():
             logger.debug("email ja registado")
             conn.close()
             return {'erro': 'email ja registado'}
-
         conn.close()
 
 
@@ -133,23 +132,22 @@ def leilao_create():
             cursor.execute(statement, (info_leilao["artigoId"], ))
             artigo = cursor.fetchone()
             if artigo is None:
-            	return {'erro': 'artigo nao existe!'}
+                return {'erro': 'artigo nao existe!'}
             else:
-            	statement = "SELECT userid FROM authtokens WHERE token = %s"
-            	cursor.execute(statement, (info_leilao["userAuthToken"], ))
-            	userid = cursor.fetchone()
+                statement = "SELECT userid FROM authtokens WHERE token = %s;"
+                cursor.execute(statement, (info_leilao["userAuthToken"], ))
+                userid = cursor.fetchone()
 
-            	statement = "INSERT INTO leilao (titulo, descricao, precomin, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s) RETURNING id"
-            	cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["artigoId"], userid, ))
-            	leilao_id = cursor.fetchone()
-            	return {'leilaoId': leilao_id}
+                statement = "INSERT INTO leilao (titulo, descricao, precomin, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
+                cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["artigoId"], userid))
+                cursor.execute("commit;")
+                leilao_id = cursor.fetchone()
+                return {'leilaoId': leilao_id}
 
 
     else:
         conn.close()
         return {'erro' : "user isn\'t logged in"}
-
-
 
 
 @endpoints.route("/dbproj/leiloes", methods=['GET'], strict_slashes=True)
@@ -162,11 +160,11 @@ def leiloes():
     leiloes = []
 
     if request.method == 'GET': # GET - buscar todos os leiloes
-        cursor.execute("""SELECT * from leilao;""")
-        info = cursor.fetchall();
+        cursor.execute("SELECT * from leilao;")
+        info = cursor.fetchall()
 
         for row in info:
-            leiloes.append(row)
+            leiloes.append(f"leilaoId: {row[0]}, descricao: {row[2]}")
         
         conn.close()
         return jsonify(leiloes)
@@ -183,12 +181,12 @@ def get_leiloes(keyword):
 
     # GET - buscar todos os leiloes
     if request.method == 'GET':
-        cursor.execute("""SELECT id, descricao from leilao WHERE id = %s;""", (keyword, ))
-        info = cursor.fetchone();
+        cursor.execute("SELECT id, descricao from leilao WHERE id = %s;", (keyword, ))
+        info = cursor.fetchone()
 
         # leilao com id 'keyword' nao existe, procurar na descricao
         if info is None:
-            cursor.execute("""SELECT id, descricao from leilao;""")
+            cursor.execute("SELECT id, descricao from leilao;")
             info = cursor.fetchall()
 
             for row in info:
@@ -198,25 +196,39 @@ def get_leiloes(keyword):
             return jsonify(leiloes)
 
 
-
 #TODO: fazer este endpoint
 @endpoints.route("/dbproj/leilao/<leilao_id>", methods=['GET', 'PUT'], strict_slashes=True)
 def leilao(leilao_id):
     conn = db_connection()
     cursor = conn.cursor()
-    info_leilao = request.get_json()
+
+    statement = "SELECT * from leilao WHERE id = %s;"
+    cursor.execute(statement, (leilao_id, ))
+    info = cursor.fetchone()
 
     # GET - buscar todos os leiloes
     if request.method == 'GET':
         logger.info("#### GET - dbproj/leilao/<leilao_id> -> Procurar leilao por id ####")
-        return {}
+        #get mensagens de outra tabela
+        
+        conn.close()
+        return {
+                'leilaoId': info[0],
+                'descricao' : info[1],
+                'precomin' : info[2],
+                'precoatual' : info[3],
+                'endDate' : info[4],
+                'mensagens' : 'nada por enquanto :)'
+                }
 
     # PUT - editar um leilao
     else:
         logger.info("#### PUT - dbproj/leilao/<leilao_id> -> Atualizar leilao por id ####")
+        info_leilao = request.get_json()
+
+
         return {}
     
-
 
 #TODO: fazer este endpoint
 @endpoints.route("/dbproj/licitar/<leilao_id>/<amount>", methods=['GET'], strict_slashes=True)
