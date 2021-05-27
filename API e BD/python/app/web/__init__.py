@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-import psycopg2, logging, time, os, datetime
+import psycopg2, logging, time, os, datetime, sys
 from dotenv import load_dotenv
 
 
@@ -9,17 +9,19 @@ TOKEN_DURATION = 5 # duraçao do token em horas
 def check_token(token):
     conn = db_connection()
     cursor = conn.cursor()
-    cursor.execute( "SELECT time_created FROM authtokens WHERE token = %s", (token, ) )
+    cursor.execute("SELECT time_created FROM authtokens WHERE token = %s", (token, ))
     info = cursor.fetchone()
+    token_time = []
 
     #info[0] = "2021-04-28 18:14:43.925712"
     # se o token existir na tabela, verificar se esta valido
+    print(str(info[0]))
     if info is not None: 
-        token_time = info[0].split('.')[0].split(' ')# "2021-04-28 18:14:43.925712" -> "2021-04-28 18:14:43" -> ["2021-04-28", "18:14:43"]
-        token_time[0] = token_time.split('-')# ["2021", "04", "28"]
-        token_time[1] = token_time.split(':')# ["18", "14", "43"]
+        token_time = str(info[0]).split('.')[0].split(' ') # "2021-04-28 18:14:43.925712" -> "2021-04-28 18:14:43" -> ["2021-04-28", "18:14:43"]
+        token_time[0] = token_time.split('-') # ["2021", "04", "28"]
+        token_time[1] = token_time.split(':') # ["18", "14", "43"]
 
-        time_aux = datetime.datetime.now( int(token_time[0][0]), int(token_time[0][1]),int(token_time[0][2]), int(token_time[1][0]),int(token_time[1][1]),int(token_time[1][2]) )
+        time_aux = datetime.datetime(int(token_time[0][0]), int(token_time[0][1]),int(token_time[0][2]), int(token_time[1][0]),int(token_time[1][1]),int(token_time[1][2]))
         time_now = datetime.datetime.now()
         
         # verificar se o token ja expirou
@@ -30,6 +32,13 @@ def check_token(token):
             return 'Valid'
     else:
         return 'Erro'
+
+
+def print_exception(err):
+    err_type, err_obj, traceback = sys.exc_info()
+    line_num = traceback.tb_lineno
+
+    print(f'ERRRO: {err}\nLINE {line_num}\nTraceback: {traceback}\nTYPE:{err_type}')
 
 
 def db_connection():
@@ -70,4 +79,3 @@ def start_app():
     app.register_blueprint(endpoints, url_prefix='/')
   
     return app
-

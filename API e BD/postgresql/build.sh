@@ -11,7 +11,5 @@
 image="bd-psql"
 container="db"
 
-
-
 echo "-- Building --"
-docker   build  -t  $image   .
+docker build -t $image .

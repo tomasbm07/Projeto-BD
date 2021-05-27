@@ -24,7 +24,7 @@ CREATE TABLE artigos (
 	id	 SERIAL,
 	nome	 VARCHAR(512) NOT NULL,
 	descricao VARCHAR(2048),
-	PRIMARY KEY(artigoid)
+	PRIMARY KEY(id)
 );
 
 CREATE TABLE comentario (
@@ -52,7 +52,7 @@ CREATE TABLE authTokens (
 	PRIMARY KEY(userid)
 );
 
-ALTER TABLE leilao ADD CONSTRAINT leilao_fk1 FOREIGN KEY (artigos_artigoid) REFERENCES artigos(artigoid);
+
 ALTER TABLE leilao ADD CONSTRAINT leilao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 ALTER TABLE comentario ADD CONSTRAINT comentario_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
 ALTER TABLE comentario ADD CONSTRAINT comentario_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
