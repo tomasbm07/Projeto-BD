@@ -263,7 +263,6 @@ def leilao(leilao_id):
         return {}
     
 
-#TODO: fazer este endpoint
 @endpoints.route("/dbproj/licitar/<leilao_id>/<amount>", methods=['GET'], strict_slashes=True)
 def leilao_bid(leilao_id, amount):
     logger.info("#### GET - dbproj/<leilao_id>/<amount> -> Atualizar leilao por id ####")
@@ -279,13 +278,14 @@ def leilao_bid(leilao_id, amount):
         return {'erro' : 'token expired'}
 
     elif result == 'Valid':
-        try:
-            statement = "SELECT precoatual FROM leilao WHERE %s = id;"
-            cursor.execute(statement, (leilao_id))
-            preco = cursor.fetchone()
-        except:
+        
+        statement = "SELECT precoatual FROM leilao WHERE %s = id;"
+        cursor.execute(statement, (leilao_id,))
+        preco = cursor.fetchone()
+       
+        if preco is None:
             conn.close()
-            return {'erro': "leilao id ins\'t valid!"}
+            return {'erro': "auction doesn\'t exist!"}
 
         try:
             amount = int(amount)
@@ -293,14 +293,15 @@ def leilao_bid(leilao_id, amount):
             conn.close()
             return {'erro': "amount inserted isn\'t valid!"}
 
-        if (amount <= preco):
+        if (amount <= int(preco[0])):
             conn.close()
-            return {'erro': "insert amount bigger then the current bid!"}
+            return {'erro': "insert an amount bigger then the current bid!"}
         else:
             userid = get_user_from_token(token["userAuthToken"])
             statement = "INSERT INTO licitacao (valor, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
             cursor.execute(statement, (amount, leilao_id, userid))
             cursor.execute("commit;")
+            conn.close()
             return {'Sucesso': "true"}
 
     else:
