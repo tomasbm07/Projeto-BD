@@ -79,3 +79,19 @@ INSERT INTO artigos (nome, descricao) VALUES ('EVGA RTX 3080', '');
 INSERT INTO artigos (nome, descricao) VALUES ('NVIDIA RTX 3060', '');
 INSERT INTO artigos (nome, descricao) VALUES ('Intel Core i9-11900K', '');
 INSERT INTO artigos (nome, descricao) VALUES ('MSI X570-A PRO', '');
+
+---------------------------------------------------------
+--------------FUNÇOES/PROCEDIMENTOS/TRIGGERS-------------
+---------------------------------------------------------
+
+--Função que devolve o username apartir de um userid
+create or replace FUNCTION get_username_from_id(id utilizador.userid%type) returns utilizador.nome%type
+language plpgsql
+as $$
+DECLARE
+v_username utilizador.nome%type;
+BEGIN
+	SELECT username FROM utilizador WHERE userid = id INTO v_username;
+	return v_username;
+END;
+$$;

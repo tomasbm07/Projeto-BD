@@ -238,9 +238,10 @@ def leilao(leilao_id):
         cursor.execute(statement, (leilao_id, ))
         info_mensagens = cursor.fetchall()
 
-        #TODO criar funçao para ir buscar username pelo userid
         for row in info_mensagens:
-            mensagens.append([f"Comentário de {row[2]}:", f"{row[0]}", f"Resposta: {row[1]}"])
+            cursor.execute("SELECT * FROM get_username_from_id(%s);", (row[2], ))
+            user = cursor.fetchone()
+            mensagens.append([f"Comentário de {user[0]}:", f"{row[0]}", f"Resposta: {row[1]}"])
         
         conn.close()
         #mensagens = ['boas', 'ola', 'hehexD']
