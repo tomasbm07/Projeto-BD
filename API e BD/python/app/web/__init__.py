@@ -3,13 +3,6 @@ import psycopg2, logging, time, os, datetime, sys
 from dotenv import load_dotenv
 
 
-def print_exception(err):
-    err_type, err_obj, traceback = sys.exc_info()
-    line_num = traceback.tb_lineno
-
-    print(f'ERRRO: {err}\nLINE {line_num}\nTraceback: {traceback}\nTYPE:{err_type}')
-
-
 def db_connection():
     load_dotenv()
     

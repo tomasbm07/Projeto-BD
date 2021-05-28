@@ -215,11 +215,9 @@ def get_leiloes(keyword):
             else:
                 return {'erro': f"Nao encontrado nenhum leilao com artigo de EAN {keyword}"}
 
-            
 
-
-#TODO: fazer este endpoint
-@endpoints.route("/dbproj/leilao/<leilao_id>", methods=['GET', 'PUT'], strict_slashes=True)
+#TODO: fazer PUT deste endpoint
+@endpoints.route("/dbproj/leilao/<leilao_id>", methods=['GET', 'PUT', 'POST'], strict_slashes=True)
 def leilao(leilao_id):
     conn = db_connection()
     cursor = conn.cursor()
@@ -256,10 +254,23 @@ def leilao(leilao_id):
                 }
 
     # PUT - editar um leilao
-    else:
+    elif request.method == 'PUT':
         logger.info("#### PUT - dbproj/leilao/<leilao_id> -> Atualizar leilao por id ####")
         info_leilao = request.get_json()
+        return {}
+    
+    #POST - escrever uma mensagem no leilao
+    elif request.method == 'POST':
+        info_leilao = request.get_json()
 
+        # get_username_from_token
+
+        # TODO acbar isto :)
+        cursor.execute("SELECT * FROM get_username_from_token(%s);", (info_leilao['authToken'],))
+        username = cursor.fetchone()
+
+        statement = "INSERT INTO comentario (comentario, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
+        cursor.execute(statement, (info_leilao['mensagem'], leilao_id, ) )
 
         return {}
     

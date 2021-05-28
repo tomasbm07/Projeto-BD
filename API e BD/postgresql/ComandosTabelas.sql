@@ -80,6 +80,7 @@ INSERT INTO artigos (nome, descricao) VALUES ('NVIDIA RTX 3060', '');
 INSERT INTO artigos (nome, descricao) VALUES ('Intel Core i9-11900K', '');
 INSERT INTO artigos (nome, descricao) VALUES ('MSI X570-A PRO', '');
 
+
 ---------------------------------------------------------
 --------------FUNÇOES/PROCEDIMENTOS/TRIGGERS-------------
 ---------------------------------------------------------
@@ -92,6 +93,20 @@ DECLARE
 v_username utilizador.nome%type;
 BEGIN
 	SELECT username FROM utilizador WHERE userid = id INTO v_username;
+	return v_username;
+END;
+$$;
+
+--Função que devolve o username apartir de um token
+create or replace FUNCTION get_username_from_token(p_token authTokens.token%type) returns utilizador.username%type
+language plpgsql
+as $$
+DECLARE
+v_userid utilizador.userid%type;
+v_username utilizador.username%type;
+BEGIN
+	SELECT userid FROM authTokens WHERE token = p_token INTO v_userid;
+	SELECT * FROM get_username_from_id(v_userid) INTO v_username;
 	return v_username;
 END;
 $$;
@@ -111,7 +126,7 @@ begin
 	fetch c1 into
 	v_leilao_id, v_valor;
 	UPDATE leilao
-	precoatual = v_valor
+	SET precoatual = v_valor
 	WHERE id = v_leilao_id;
 	return new;
 end;
