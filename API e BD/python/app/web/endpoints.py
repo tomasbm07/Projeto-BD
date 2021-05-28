@@ -243,6 +243,10 @@ def leilao(leilao_id):
         
         conn.close()
         #mensagens = ['boas', 'ola', 'hehexD']
+
+        if info is None:
+            return {'erro': "auction doesn\'t exist!"}
+
         return {
                 'leilaoId': info[0],
                 'titulo': info[1],
@@ -315,6 +319,45 @@ def leilao_bid(leilao_id, amount):
             cursor.execute("commit;")
             conn.close()
             return {'Sucesso': "true"}
+
+    else:
+        conn.close()
+        return {'erro' : "user isn\'t logged in"}
+
+
+@endpoints.route("/dbproj/leiloes/user", methods=['GET'], strict_slashes=True)
+def user_auctions():
+    logger.info("#### GET - dbproj/leiloes/user -> Listar leiloes em que o utilizador tenha atividade ####")
+
+    conn = db_connection()
+    cursor = conn.cursor()
+    token = request.get_json()
+
+    result = check_token(token["userAuthToken"])
+    leiloes = []
+
+    if result == 'Expired':
+        conn.close()
+        return {'erro' : 'token expired'}
+
+    elif result == 'Valid':
+        userid = get_user_from_token(token["userAuthToken"])
+
+        statement = "SELECT distinct leilao.titulo, leilao.descricao, precoatual, leilao.data from leilao, licitacao where leilao.id = leilao_id AND licitacao.utilizador_userid = %s OR leilao.utilizador_userid = %s;"
+        cursor.execute(statement, (userid, userid))
+        info = cursor.fetchall()
+
+        conn.close()
+
+        if info == []:
+            return {'erro': "user doesn\'t participate in any auction!"}
+
+        for row in info:
+            leiloes.append(f"titulo: {row[0]}, descricao: {row[1]}, preco atual: {row[2]}, data que acaba: {row[3]}")
+
+        return jsonify(leiloes)
+
+
 
     else:
         conn.close()
