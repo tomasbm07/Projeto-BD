@@ -23,6 +23,11 @@ logger = start_logger()
     - sempre q um user tenta licitar num leilao, chamar o endpoint acima para verifar se ja acabou
     - trigger para limpar tudo assciado a esse leilao: leilao, mensagens, historico, ...
 
+-> endpoint para um user poder acrescentar os restantes dados ao seu perfil
+    - nome e morada
+
+-> mudar a relaçao utilizador-mensagem pq n é suposto ter um chave forasteira para as mensagens na tabela do utilizador :)
+
 -> mais alguma coisa?
 """
 
