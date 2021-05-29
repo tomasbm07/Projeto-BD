@@ -132,9 +132,9 @@ begin
 end;
 $$;
 
-create trigger trigger_atualizar_precoatual
-after insert on licitacao
-for each row
-execute procedure atualiza_preco_leilao();
+CREATE trigger trigger_atualizar_precoatual
+AFTER INSERT ON licitacao
+for each ROW
+EXECUTE PROCEDURE atualiza_preco_leilao();
 
 ----------------

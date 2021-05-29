@@ -3,6 +3,7 @@ import psycopg2, logging, time, os, datetime, sys
 from dotenv import load_dotenv
 
 
+
 def db_connection():
     load_dotenv()
     
@@ -38,6 +39,7 @@ def start_app():
     app = Flask(__name__)
     
     app.config['JSON_SORT_KEYS'] = False
+    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
     from .endpoints import endpoints
     app.register_blueprint(endpoints, url_prefix='/')

@@ -5,23 +5,31 @@ from . import *
 
 TOKEN_DURATION = 5 # duraçao do token em horas
 
-
 def get_user_from_token(token):
     conn = db_connection()
     cursor = conn.cursor()
-
     statement = "SELECT userid FROM authtokens WHERE token = %s;"
-    cursor.execute(statement, (token, ))
-    userid = cursor.fetchone()
+    try:
+        cursor.execute(statement, (token, ))
+        userid = cursor.fetchone()
+    except:
+        conn.close()
+        return 0
+
     conn.close()
     return userid
 
 
 def check_token(token):
     conn = db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT time_created FROM authtokens WHERE token = %s", (token, ))
-    info = cursor.fetchone()
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT time_created FROM authtokens WHERE token = %s", (token, ))
+        info = cursor.fetchone()
+    except:
+        return 'Erro'
+
     token_time = []
 
     #info[0] = "2021-04-28 18:14:43.925712"
@@ -36,8 +44,12 @@ def check_token(token):
         
         # verificar se o token ja expirou
         if time_now - time_aux > datetime.timedelta(hours = TOKEN_DURATION):
-            cursor.execute("DELETE FROM authtokens WHERE token = %s", (token, ))
-            conn.close()
+            try:
+                cursor.execute("DELETE FROM authtokens WHERE token = %s", (token, ))
+                cursor.execute("COMMIT;")
+                conn.close()
+            except:
+                return 'Erro'
             return 'Expired'
         else:
             return 'Valid'

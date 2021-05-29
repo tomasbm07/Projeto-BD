@@ -55,22 +55,30 @@ def user():
                 aux = cursor.fetchone()
                 #se nao tiver um token associado ao user, gerar token e inserir na tabela
                 if aux is None:
-                    token = str(uuid1())
-                    values = (info[2], token)
-                    cursor.execute("INSERT INTO authtokens (userid, token) VALUES (%s, %s)", values)
-                    cursor.execute("COMMIT;")
-                    logger.debug(f"Login: {info[0]} -> id: {info[2]}")
-                    conn.close()
-                    return {'authToken': token}
+                    try:
+                        token = str(uuid1())
+                        cursor.execute("INSERT INTO authtokens (userid, token) VALUES (%s, %s)", (info[2], token))
+                        cursor.execute("COMMIT;")
+                        logger.debug(f"Login: {info[0]} -> id: {info[2]}")
+                        conn.close()
+                        return {'authToken': token}
+                    except:
+                        return {'erro': 'An error occurred'}
                 else: #user ja tem um token
                     x = check_token(aux[0])
                     if x == 'Valid':
                         logger.debug("User ja fez login")
                         conn.close()
                         return {'warning': 'user ja fez login', 'authToken' : aux[0]}
+
                     elif x == 'Expired': # Expired
-                        conn.close()
-                        return {'warning': 'token has expired'}
+                        try:
+                            token = str(uuid1())
+                            cursor.execute("INSERT INTO authtokens (userid, token) VALUES (%s, %s)", (info[2], token))
+                            conn.close()
+                            return {'warning': 'token has expired', 'new token' : token}
+                        except:
+                            return {'erro': 'An error occurred'}
                     else:
                         conn.close()
                         return {'erro': "tokens does't exist"}
@@ -129,13 +137,15 @@ def leilao_create():
 
     elif result == 'Valid':
         if request.method == 'POST': # POST - criar leilao
-            statement = """SELECT id FROM artigos WHERE id = %s;"""
+            statement = "SELECT id FROM artigos WHERE id = %s;"
             cursor.execute(statement, (info_leilao["artigoId"], ))
             artigo = cursor.fetchone()
             if artigo is None:
                 return {'erro': 'artigo nao existe!'}
             else:
                 userid = get_user_from_token(info_leilao["userAuthToken"])
+                if userid == 0:
+                    return {'erro': "user doesn't exist!"}
 
                 statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
                 cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["endDate"], info_leilao["artigoId"], userid))
@@ -223,9 +233,17 @@ def leilao(leilao_id):
     conn = db_connection()
     cursor = conn.cursor()
 
-    statement = "SELECT * from leilao WHERE id = %s;"
-    cursor.execute(statement, (leilao_id, ))
-    info = cursor.fetchone()
+    try:
+        statement = "SELECT * from leilao WHERE id = %s;"
+        cursor.execute(statement, (leilao_id, ))
+        info = cursor.fetchone()
+    except:
+        conn.close()
+        return {'erro' : "couldn't fetch auction"}
+
+    if info is None:
+        conn.close()
+        return {'erro': f"auction with id = {leilao_id} doesn't exist!"}
 
     # GET - buscar todos os leiloes
     if request.method == 'GET':
@@ -234,19 +252,18 @@ def leilao(leilao_id):
         
         #get mensagens de outra tabela
         statement = "SELECT comentario, resposta, utilizador_userid FROM comentario WHERE leilao_id = %s;"
-        cursor.execute(statement, (leilao_id, ))
-        info_mensagens = cursor.fetchall()
+        try:
+            cursor.execute(statement, (leilao_id, ))
+            info_mensagens = cursor.fetchall()
+        except:
+            return {'erro' : "Couldn't get messages"}
 
         for row in info_mensagens:
             cursor.execute("SELECT * FROM get_username_from_id(%s);", (row[2], ))
             user = cursor.fetchone()
-            mensagens.append([f"Comentário de {user[0]}:", f"{row[0]}", f"Resposta: {row[1]}"])
+            mensagens.append([f"Comentário de {user[0]}:", f"- {row[0]}", "Resposta:", f"- {'' if row[1] is None else row[1]}"])
         
         conn.close()
-        #mensagens = ['boas', 'ola', 'hehexD']
-
-        if info is None:
-            return {'erro': "auction doesn\'t exist!"}
 
         return {
                 'leilaoId': info[0],
@@ -260,6 +277,7 @@ def leilao(leilao_id):
 
     # PUT - editar um leilao
     # TODO - guardar snapshot
+    # TODO - criador do leilao pode responder aos comentarios no mural
     elif request.method == 'PUT':
         logger.info("#### PUT - dbproj/leilao/<leilao_id> -> Atualizar leilao por id ####")
         info = request.get_json()
@@ -272,7 +290,7 @@ def leilao(leilao_id):
             return {'erro' : 'token expired'}
 
         elif result == 'Valid':
-            userid = get_user_from_token(info["userAuthToken"]);
+            userid = get_user_from_token(info["userAuthToken"])
             statement = "SELECT utilizador_userid FROM leilao WHERE id = %s;"
             cursor.execute(statement, (leilao_id))
             leilao_userid = cursor.fetchone()
@@ -292,7 +310,7 @@ def leilao(leilao_id):
                 except:
                     cursor.execute("ROLLBACK;")
                     conn.close()
-                    return {'erro': "Something happen..."}
+                    return {'erro': "Something happened..."}
 
         else:
             conn.close()
@@ -302,21 +320,23 @@ def leilao(leilao_id):
     elif request.method == 'POST':
         info_leilao = request.get_json()
 
-        # get_username_from_token
-
         # TODO acbar isto :)
-        cursor.execute("SELECT * FROM get_username_from_token(%s);", (info_leilao['authToken'],))
-        username = cursor.fetchone()
+        #cursor.execute("SELECT * FROM get_username_from_token(%s);", (info_leilao['authToken'],))
+        #username = cursor.fetchone()
 
         statement = "INSERT INTO comentario (comentario, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
-        cursor.execute(statement, (info_leilao['mensagem'], leilao_id, ) )
-
-        return {}
+        try:
+            cursor.execute(statement, (info_leilao['mensagem'], leilao_id, get_user_from_token(info_leilao['authToken'])))
+            cursor.execute("COMMIT;")
+            conn.close()
+            return {f'leilao {leilao_id}' : 'Message added'}
+        except:
+            return {'erro' : 'Erro adding message'}
     
 
 @endpoints.route("/dbproj/licitar/<leilao_id>/<amount>", methods=['GET'], strict_slashes=True)
 def leilao_bid(leilao_id, amount):
-    logger.info("#### GET - dbproj/<leilao_id>/<amount> -> Atualizar leilao por id ####")
+    logger.info("#### GET - dbproj/<leilao_id>/<amount> -> Licitar pelo id do leilao ####")
 
     conn = db_connection()
     cursor = conn.cursor()
@@ -353,7 +373,7 @@ def leilao_bid(leilao_id, amount):
             cursor.execute(statement, (amount, leilao_id, userid))
             cursor.execute("commit;")
             conn.close()
-            return {'Sucesso': "true"}
+            return {'Sucess': f"You made a bid on leilao {leilao_id}"}
 
     else:
         conn.close()
@@ -379,8 +399,12 @@ def user_auctions():
         userid = get_user_from_token(token["userAuthToken"])
 
         statement = "SELECT distinct leilao.titulo, leilao.descricao, precoatual, leilao.data from leilao, licitacao where leilao.id = leilao_id AND licitacao.utilizador_userid = %s OR leilao.utilizador_userid = %s;"
-        cursor.execute(statement, (userid, userid))
-        info = cursor.fetchall()
+        try:
+            cursor.execute(statement, (userid, userid))
+            info = cursor.fetchall()
+        except:
+            conn.close()
+            return {'erro': 'getting leilao'}
 
         conn.close()
 
@@ -388,11 +412,9 @@ def user_auctions():
             return {'erro': "user doesn\'t participate in any auction!"}
 
         for row in info:
-            leiloes.append(f"titulo: {row[0]}, descricao: {row[1]}, preco atual: {row[2]}, data que acaba: {row[3]}")
+            leiloes.append(f"titulo: {row[0]}, descricao: {row[1]}, precoatual: {row[2]}, endDate: {row[3]}")
 
         return jsonify(leiloes)
-
-
 
     else:
         conn.close()
