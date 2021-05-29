@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, Blueprint
 import psycopg2, logging, time
+from psycopg2.extensions import AsIs
 #from . import db_connection, check_token, start_logger
 from . import *
 from .functions import *
@@ -258,10 +259,44 @@ def leilao(leilao_id):
                 }
 
     # PUT - editar um leilao
+    # TODO - guardar snapshot
     elif request.method == 'PUT':
         logger.info("#### PUT - dbproj/leilao/<leilao_id> -> Atualizar leilao por id ####")
-        info_leilao = request.get_json()
-        return {}
+        info = request.get_json()
+
+        editable_columns=["titulo", "descricao", "precomin", "data"]
+        result = check_token(info["userAuthToken"])
+
+        if result == 'Expired':
+            conn.close()
+            return {'erro' : 'token expired'}
+
+        elif result == 'Valid':
+            userid = get_user_from_token(info["userAuthToken"]);
+            statement = "SELECT utilizador_userid FROM leilao WHERE id = %s;"
+            cursor.execute(statement, (leilao_id))
+            leilao_userid = cursor.fetchone()
+
+            if (leilao_userid != userid):
+                conn.close()
+                return({'error': "You aren\'t the owner of this auction!"})
+            else:
+                try:
+                    for key in info.keys():
+                        if key in editable_columns:
+                            statement = "UPDATE leilao SET %s = %s WHERE id = %s;"
+                            cursor.execute(statement, (AsIs(key), info[key], leilao_id))
+                    cursor.execute("COMMIT;")
+                    conn.close()
+                    return {'Success': "auction updated!"}
+                except:
+                    cursor.execute("ROLLBACK;")
+                    conn.close()
+                    return {'erro': "Something happen..."}
+
+        else:
+            conn.close()
+            return {'erro' : "user isn\'t logged in"}
     
     #POST - escrever uma mensagem no leilao
     elif request.method == 'POST':
