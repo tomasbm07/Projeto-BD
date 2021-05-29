@@ -50,10 +50,10 @@ CREATE TABLE licitacao (
 );
 
 CREATE TABLE authTokens (
-	userid 			INTEGER,
+	userid 			INTEGER UNIQUE NOT NULL,
 	token		 	VARCHAR(1024) UNIQUE NOT NULL,
 	time_created	TIMESTAMP NOT NULL DEFAULT NOW(), 
-	PRIMARY KEY(userid)
+	PRIMARY KEY(userid, token)
 );
 
 

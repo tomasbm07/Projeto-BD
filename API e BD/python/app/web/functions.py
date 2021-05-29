@@ -22,9 +22,9 @@ def get_user_from_token(token):
 
 def check_token(token):
     conn = db_connection()
+    cursor = conn.cursor()
 
     try:
-        cursor = conn.cursor()
         cursor.execute("SELECT time_created FROM authtokens WHERE token = %s", (token, ))
         info = cursor.fetchone()
     except:

@@ -31,7 +31,7 @@ for i in range(15):
     r = requests.post(url = URL, json = PARAMS)
     data = r.json()
     if 'erro' in data.keys():
-        print('erro')
+        print(f"erro - {data['erro']}")
     else:
         print(f"Created user {data['userid']} - username: {nome}")
     t.sleep(0.1)
@@ -49,7 +49,10 @@ for i in nomes:
     r = requests.put(url = URL, json = PARAMS)
     data = r.json()
     tokens.append(data['authToken'])
-    print(f"username:{i} - token:{data['authToken']}")
+    if 'erro' in data.keys():
+        print(f"erro - {data['erro']}")
+    else:
+        print(f"username:{i} - token:{data['authToken']}")
     t.sleep(0.1)
 
 
@@ -97,7 +100,7 @@ for i in range(random.randint(10, 20)):
     r = requests.get(url = URL, json = PARAMS)
     data = r.json()
     if 'erro' in data.keys():
-        print('erro')
+        print(f"erro - {data['erro']}")
     else:
         print(f'{user} made a bid on {id} of {bid}£')
 
@@ -115,6 +118,6 @@ for i in range(random.randint(5, 15)):
     data = r.json()
     if 'erro' in data.keys():
         print(data)
-        print('erro')
+        print(f"erro - {data['erro']}")
     else:
         print(f"{user} adicionou uma mensagem no leilao {id}")
