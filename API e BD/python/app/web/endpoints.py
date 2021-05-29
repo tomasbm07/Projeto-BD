@@ -53,24 +53,27 @@ def user():
             if check_password_hash(info[1], info_user["password"]):
                 #verificar se este user ja tem um token na tabela authtokens
                 try:
-                    cursor.execute("SELECT token FROM authtokens WHERE userid = %s", (info[2],))
+                    cursor.execute("SELECT token FROM authtokens WHERE utilizador_userid = %s", (info[2],))
                     aux = cursor.fetchone()
                 except:
                     return {'erro' : 'SELECT token FROM authtokens'}
                 #se nao tiver um token associado ao user, gerar token e inserir na tabela
                 if aux is None:
                     while not token_inserted:
+                        cursor.execute("BEGIN;")
+                        token = str(uuid4())
                         try:
-                            token = str(uuid4())
-                            cursor.execute("INSERT INTO authtokens (userid, token) VALUES (%s, %s)", (info[2], token))
+                            cursor.execute("INSERT INTO authtokens (utilizador_userid, token) VALUES (%s, %s)", (info[2], token))
                             cursor.execute("COMMIT;")
-                            logger.debug(f"Login: {info[0]} -> id: {info[2]}")
-                            conn.close()
                             token_inserted = True
-                            return {'authToken': token}
                         except:
+                            cursor.execute("ROLLBACK;")
                             logger.debug(f"Token generated already existed!")
                             token_inserted = False
+                        
+                    logger.debug(f"Login: {info[0]} -> id: {info[2]}")
+                    conn.close()
+                    return {'authToken': token}
                 else: #user ja tem um token
                     x = check_token(aux[0])
                     if x == 'Valid':
@@ -81,7 +84,7 @@ def user():
                     elif x == 'Expired': # Expired
                         try:
                             token = str(uuid4())
-                            cursor.execute("INSERT INTO authtokens (userid, token) VALUES (%s, %s)", (info[2], token))
+                            cursor.execute("INSERT INTO authtokens (utilizador_userid, token) VALUES (%s, %s)", (info[2], token))
                             conn.close()
                             return {'warning': 'token has expired', 'new token' : token}
                         except:
@@ -154,7 +157,7 @@ def leilao_create():
                 if userid == 0:
                     return {'erro': "user doesn't exist!"}
 
-                statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
+                statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_id, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
                 cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["endDate"], info_leilao["artigoId"], userid))
                 leilao_id = cursor.fetchone()
                 cursor.execute("COMMIT;")
@@ -206,12 +209,12 @@ def get_leiloes(keyword):
             pass
 
         if type(keyword)!=str:
-            cursor.execute("SELECT leilao.id, leilao.descricao, artigos.id from leilao, artigos WHERE artigos_artigoid = artigos.id AND artigos.id = %s;", (keyword, ))
+            cursor.execute("SELECT leilao.id, leilao.descricao, artigos.id from leilao, artigos WHERE artigos_id = artigos.id AND artigos.id = %s;", (keyword, ))
             info = cursor.fetchall()
 
         # leilao com id 'keyword' nao existe, procurar na descricao
         if info is None:
-            cursor.execute("SELECT leilao.id, leilao.descricao, artigos.nome from leilao, artigos WHERE artigos_artigoid = artigos.id AND artigos.nome = %s;", (keyword, ))
+            cursor.execute("SELECT leilao.id, leilao.descricao, artigos.nome from leilao, artigos WHERE artigos_id = artigos.id AND artigos.nome = %s;", (keyword, ))
             info = cursor.fetchall()
 
             for row in info:

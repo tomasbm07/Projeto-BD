@@ -91,7 +91,7 @@ for i in range(random.randint(5, 8)):
 for i in range(random.randint(10, 20)):
     id = random.choice(leilao_ids)
     user = random.choice(tokens)
-    bid = 5*random.randint(1,20)
+    bid = random.randint(50, 1000)
 
     URL = f"http://localhost:8080/dbproj/licitar/{id}/{bid}"
     PARAMS = {
