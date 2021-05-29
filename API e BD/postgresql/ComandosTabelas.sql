@@ -62,6 +62,7 @@ CREATE TABLE mensagens (
 	mensagem VARCHAR(1024),
 	PRIMARY KEY(id)
 );
+
 CREATE TABLE historico (
 	titulo	 VARCHAR(512) NOT NULL,
 	descricao	 VARCHAR(512),
@@ -81,8 +82,6 @@ ALTER TABLE comentario ADD CONSTRAINT comentario_fk2 FOREIGN KEY (utilizador_use
 ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
 ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 ALTER TABLE authtokens ADD CONSTRAINT authtokens_fk1 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
-
-ALTER TABLE authTokens ADD CONSTRAINT autenticado_fk1 FOREIGN KEY (userid) REFERENCES utilizador(userid);
 ALTER TABLE historico ADD CONSTRAINT historico_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
 
 ----------------------------------
