@@ -11,6 +11,20 @@ endpoints = Blueprint('endpoints', __name__)
 
 logger = start_logger()
 
+#TODO em geral:
+"""
+-> notificaçoes para um user
+    - notificaçao de que alguem deu uma bid mais alta
+    - termino de um leilao em que participou ou criou
+    - mensagens recebidas num leilao criado por si
+
+-> terminaçao de um leilao a uma hora especifica
+    - fazer um endpoint q passa por todos os leiloes e vê se ja acabou a hora
+    - sempre q um user tenta licitar num leilao, chamar o endpoint acima para verifar se ja acabou
+    - trigger para limpar tudo assciado a esse leilao: leilao, mensagens, historico, ...
+
+-> mais alguma coisa?
+"""
 
 #Default page
 @endpoints.route('/dbproj/') 
