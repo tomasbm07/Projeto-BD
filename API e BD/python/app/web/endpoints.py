@@ -5,7 +5,7 @@ from psycopg2.extensions import AsIs
 from . import *
 from .functions import *
 from werkzeug.security import generate_password_hash, check_password_hash
-from uuid import uuid1
+from uuid import uuid4
 
 
 endpoints = Blueprint('endpoints', __name__)
@@ -38,6 +38,7 @@ def user():
     conn = db_connection()
     cursor = conn.cursor()
     info_user = request.get_json()
+    token_inserted = False
 
     if request.method == 'PUT': #PUT - login de utilizador
         logger.info("#### PUT - dbproj/user -> Login ####")
@@ -51,19 +52,25 @@ def user():
         else:
             if check_password_hash(info[1], info_user["password"]):
                 #verificar se este user ja tem um token na tabela authtokens
-                cursor.execute("SELECT token FROM authtokens WHERE userid = %s", (info[2],))
-                aux = cursor.fetchone()
+                try:
+                    cursor.execute("SELECT token FROM authtokens WHERE userid = %s", (info[2],))
+                    aux = cursor.fetchone()
+                except:
+                    return {'erro' : 'SELECT token FROM authtokens'}
                 #se nao tiver um token associado ao user, gerar token e inserir na tabela
                 if aux is None:
-                    try:
-                        token = str(uuid1())
-                        cursor.execute("INSERT INTO authtokens (userid, token) VALUES (%s, %s)", (info[2], token))
-                        cursor.execute("COMMIT;")
-                        logger.debug(f"Login: {info[0]} -> id: {info[2]}")
-                        conn.close()
-                        return {'authToken': token}
-                    except:
-                        return {'erro': 'An error occurred'}
+                    while not token_inserted:
+                        try:
+                            token = str(uuid4())
+                            cursor.execute("INSERT INTO authtokens (userid, token) VALUES (%s, %s)", (info[2], token))
+                            cursor.execute("COMMIT;")
+                            logger.debug(f"Login: {info[0]} -> id: {info[2]}")
+                            conn.close()
+                            token_inserted = True
+                            return {'authToken': token}
+                        except:
+                            logger.debug(f"Token generated already existed!")
+                            token_inserted = False
                 else: #user ja tem um token
                     x = check_token(aux[0])
                     if x == 'Valid':
@@ -73,7 +80,7 @@ def user():
 
                     elif x == 'Expired': # Expired
                         try:
-                            token = str(uuid1())
+                            token = str(uuid4())
                             cursor.execute("INSERT INTO authtokens (userid, token) VALUES (%s, %s)", (info[2], token))
                             conn.close()
                             return {'warning': 'token has expired', 'new token' : token}
@@ -150,7 +157,7 @@ def leilao_create():
                 statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_artigoid, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
                 cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["endDate"], info_leilao["artigoId"], userid))
                 leilao_id = cursor.fetchone()
-                cursor.execute("commit;")
+                cursor.execute("COMMIT;")
                 return {'leilaoId': leilao_id[0]}
 
 
@@ -199,12 +206,12 @@ def get_leiloes(keyword):
             pass
 
         if type(keyword)!=str:
-            cursor.execute("""SELECT leilao.id, leilao.descricao, artigos.id from leilao, artigos WHERE artigos_artigoid = artigos.id AND artigos.id = %s;""", (keyword, ))
-            info = cursor.fetchall();
+            cursor.execute("SELECT leilao.id, leilao.descricao, artigos.id from leilao, artigos WHERE artigos_artigoid = artigos.id AND artigos.id = %s;", (keyword, ))
+            info = cursor.fetchall()
 
         # leilao com id 'keyword' nao existe, procurar na descricao
         if info is None:
-            cursor.execute("""SELECT leilao.id, leilao.descricao, artigos.nome from leilao, artigos WHERE artigos_artigoid = artigos.id AND artigos.nome = %s;""", (keyword, ))
+            cursor.execute("SELECT leilao.id, leilao.descricao, artigos.nome from leilao, artigos WHERE artigos_artigoid = artigos.id AND artigos.nome = %s;", (keyword, ))
             info = cursor.fetchall()
 
             for row in info:
@@ -224,7 +231,7 @@ def get_leiloes(keyword):
             if leiloes != []:
                 return jsonify(leiloes)
             else:
-                return {'erro': f"Nao encontrado nenhum leilao com artigo de EAN {keyword}"}
+                return {'erro': f"Nao encontrado nenhum leilao com artigo com id {keyword}"}
 
 
 #TODO: fazer PUT deste endpoint
@@ -293,6 +300,8 @@ def leilao(leilao_id):
 
         elif result == 'Valid':
             userid = get_user_from_token(info["userAuthToken"])
+            if userid == 0:
+                return {'erro': "user doesn't exist!"}
             statement = "SELECT utilizador_userid FROM leilao WHERE id = %s;"
             cursor.execute(statement, (leilao_id))
             leilao_userid = cursor.fetchone()
@@ -325,13 +334,14 @@ def leilao(leilao_id):
     elif request.method == 'POST':
         info_leilao = request.get_json()
 
-        # TODO acbar isto :)
-        #cursor.execute("SELECT * FROM get_username_from_token(%s);", (info_leilao['authToken'],))
-        #username = cursor.fetchone()
-
         statement = "INSERT INTO comentario (comentario, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
+
+        userid = get_user_from_token(info_leilao['authToken'])
+        if userid == 0:
+            return {'erro': "user doesn't exist!"}
+
         try:
-            cursor.execute(statement, (info_leilao['mensagem'], leilao_id, get_user_from_token(info_leilao['authToken'])))
+            cursor.execute(statement, (info_leilao['mensagem'], leilao_id, userid))
             cursor.execute("COMMIT;")
             conn.close()
             return {f'leilao {leilao_id}' : 'Message added'}
@@ -355,7 +365,7 @@ def leilao_bid(leilao_id, amount):
 
     elif result == 'Valid':
         
-        statement = "SELECT precoatual FROM leilao WHERE %s = id;"
+        statement = "SELECT precoatual, precomin FROM leilao WHERE %s = id;"
         cursor.execute(statement, (leilao_id,))
         preco = cursor.fetchone()
        
@@ -369,14 +379,23 @@ def leilao_bid(leilao_id, amount):
             conn.close()
             return {'erro': "amount inserted isn\'t valid!"}
 
-        if (amount <= int(preco[0])):
+        if amount < int(preco[1]):
+            conn.close()
+            return {'erro': f"bid must be at least {preco[1]}"}
+        elif (amount <= int(preco[0])):
             conn.close()
             return {'erro': "insert an amount bigger then the current bid!"}
         else:
             userid = get_user_from_token(token["userAuthToken"])
+            if userid == 0:
+                return {'erro': "user doesn't exist!"}
             statement = "INSERT INTO licitacao (valor, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
-            cursor.execute(statement, (amount, leilao_id, userid))
-            cursor.execute("commit;")
+            try:
+                cursor.execute(statement, (amount, leilao_id, userid))
+                cursor.execute("COMMIT;")
+            except:
+                conn.close()
+                return {'erro': "couldn't insert value"}
             conn.close()
             return {'Sucess': f"You made a bid on leilao {leilao_id}"}
 
@@ -402,6 +421,8 @@ def user_auctions():
 
     elif result == 'Valid':
         userid = get_user_from_token(token["userAuthToken"])
+        if userid == 0:
+            return {'erro': "user doesn't exist!"}
 
         statement = "SELECT distinct leilao.titulo, leilao.descricao, precoatual, leilao.data from leilao, licitacao where leilao.id = leilao_id AND licitacao.utilizador_userid = %s OR leilao.utilizador_userid = %s;"
         try:
