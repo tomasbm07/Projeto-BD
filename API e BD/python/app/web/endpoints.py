@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, Blueprint
 import psycopg2, logging, time
-#from psycopg2.extensions import AsIs
+from psycopg2.extensions import AsIs
 #from . import db_connection, check_token, start_logger
 from . import *
 from .functions import *
@@ -283,6 +283,8 @@ def leilao(leilao_id):
         info = request.get_json()
 
         editable_columns=["titulo", "descricao", "precomin", "data"]
+        columns = []
+        information = []
         result = check_token(info["userAuthToken"])
 
         if result == 'Expired':
@@ -302,10 +304,13 @@ def leilao(leilao_id):
                 try:
                     for key in info.keys():
                         if key in editable_columns:
-                            statement = "UPDATE leilao SET %s = %s WHERE id = %s;"
-                            cursor.execute(statement, (AsIs(key), info[key], leilao_id))
-                    cursor.execute("COMMIT;")
-                    conn.close()
+                            columns.append(AsIs(key))
+                            information.append(info[key])
+
+                    statement = "UPDATE leilao SET %s = %s WHERE id = %s;"
+                    cursor.execute(statement, (tuple(columns), tuple(information), leilao_id,))
+                    cursor.execute("commit;")
+                    conn.close
                     return {'Success': "auction updated!"}
                 except:
                     cursor.execute("ROLLBACK;")
