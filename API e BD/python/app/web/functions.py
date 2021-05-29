@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-import psycopg2, logging, time, os, datetime, sys
+import psycopg2, datetime
 from . import *
 
 
@@ -12,12 +12,11 @@ def get_user_from_token(token):
     try:
         cursor.execute(statement, (token, ))
         userid = cursor.fetchone()
+        conn.close()
+        return userid[0]
     except:
         conn.close()
         return 0
-
-    conn.close()
-    return userid[0]
 
 
 def check_token(token):
@@ -28,6 +27,7 @@ def check_token(token):
         cursor.execute("SELECT time_created FROM authtokens WHERE token = %s", (token, ))
         info = cursor.fetchone()
     except:
+        conn.close()
         return 'Erro'
 
     token_time = []
@@ -46,12 +46,16 @@ def check_token(token):
         if time_now - time_aux > datetime.timedelta(hours = TOKEN_DURATION):
             try:
                 cursor.execute("DELETE FROM authtokens WHERE token = %s", (token, ))
-                cursor.execute("COMMIT;")
+                conn.commit()
                 conn.close()
+                return 'Expired'
             except:
+                conn.rollback()
+                conn.close()
                 return 'Erro'
-            return 'Expired'
         else:
+            conn.close()
             return 'Valid'
     else:
+        conn.close()
         return 'Erro'

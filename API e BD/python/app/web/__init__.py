@@ -1,5 +1,5 @@
-from flask import Flask, jsonify, request
-import psycopg2, logging, time, os, datetime, sys
+from flask import Flask
+import psycopg2, logging, os
 from dotenv import load_dotenv
 
 

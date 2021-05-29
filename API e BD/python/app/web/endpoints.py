@@ -1,7 +1,6 @@
-from flask import Flask, jsonify, request, Blueprint
-import psycopg2, logging, time
+from flask import jsonify, request, Blueprint
+#import psycopg2
 from psycopg2.extensions import AsIs
-#from . import db_connection, check_token, start_logger
 from . import *
 from .functions import *
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -38,13 +37,16 @@ def user():
     conn = db_connection()
     cursor = conn.cursor()
     info_user = request.get_json()
-    token_inserted = False
 
     if request.method == 'PUT': #PUT - login de utilizador
         logger.info("#### PUT - dbproj/user -> Login ####")
 
-        cursor.execute("SELECT username, password, userid FROM utilizador WHERE username = %s", (info_user["username"], ) )
-        info = cursor.fetchone()
+        try:
+            cursor.execute("SELECT username, password, userid FROM utilizador WHERE username = %s", (info_user["username"], ) )
+            info = cursor.fetchone()
+        except:
+            return {'erro' : 'SELECT username, password, userid FROM utilizador'}
+
         if info == None:
             logger.debug("Utilizador nao existe")
             conn.close()
@@ -59,17 +61,16 @@ def user():
                     return {'erro' : 'SELECT token FROM authtokens'}
                 #se nao tiver um token associado ao user, gerar token e inserir na tabela
                 if aux is None:
-                    while not token_inserted:
-                        cursor.execute("BEGIN;")
+                    while True:
+                        #cursor.execute("BEGIN;")
                         token = str(uuid4())
                         try:
                             cursor.execute("INSERT INTO authtokens (utilizador_userid, token) VALUES (%s, %s)", (info[2], token))
-                            cursor.execute("COMMIT;")
-                            token_inserted = True
+                            conn.commit()
+                            break;
                         except:
-                            cursor.execute("ROLLBACK;")
+                            conn.rollback()
                             logger.debug(f"Token generated already existed!")
-                            token_inserted = False
                         
                     logger.debug(f"Login: {info[0]} -> id: {info[2]}")
                     conn.close()
@@ -105,21 +106,34 @@ def user():
 
         #verificar se o username ja esta registado
         get_user_querry = "SELECT userid FROM utilizador WHERE username = %s;"
-        cursor.execute(get_user_querry, (info_user["username"],) )
-        info = cursor.fetchone()
+        try:
+            cursor.execute(get_user_querry, (info_user["username"],) )
+            info = cursor.fetchone()
+        except:
+            conn.close()
+            return{'erro' : 'SELECT userid FROM utilizador'}
 
         #verificar se o email ja esta registado
-        cursor.execute("SELECT userid FROM utilizador WHERE email = %s;", (info_user["email"],) )
-        info_aux = cursor.fetchone()
+        try:
+            cursor.execute("SELECT userid FROM utilizador WHERE email = %s;", (info_user["email"],) )
+            info_aux = cursor.fetchone()
+        except:
+            conn.close()
+            return{'erro' : 'SELECT userid FROM utilizador WHERE email = '}
 
         if info is None and info_aux is None: # se for None -> ainda nao existe na bd
-            cursor.execute(statement, values)
-            cursor.execute("commit;")
-            cursor.execute(get_user_querry, (info_user["username"], ) )
-            info = cursor.fetchone()
-            logger.debug(f"User {info[0]} created")
-            conn.close()
-            return {'userid': info[0]}
+            try:
+                cursor.execute(statement, values)
+                conn.commit()
+                cursor.execute(get_user_querry, (info_user["username"], ) )
+                info = cursor.fetchone()
+                logger.debug(f"User {info[0]} created")
+                conn.close()
+                return {'userid': info[0]}
+            except:
+                conn.rollback()
+                conn.close()
+                return {'erro': 'Sign-up Failed'}
         elif info is not None:
             logger.debug("username ja registado")
             conn.close()
@@ -128,7 +142,6 @@ def user():
             logger.debug("email ja registado")
             conn.close()
             return {'erro': 'email ja registado'}
-        conn.close()
 
 
 @endpoints.route("/dbproj/leilao", methods=['POST'], strict_slashes=True)
@@ -151,18 +164,24 @@ def leilao_create():
             cursor.execute(statement, (info_leilao["artigoId"], ))
             artigo = cursor.fetchone()
             if artigo is None:
+                conn.close()
                 return {'erro': 'artigo nao existe!'}
             else:
                 userid = get_user_from_token(info_leilao["userAuthToken"])
                 if userid == 0:
+                    conn.close()
                     return {'erro': "user doesn't exist!"}
-
-                statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_id, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
-                cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["endDate"], info_leilao["artigoId"], userid))
-                leilao_id = cursor.fetchone()
-                cursor.execute("COMMIT;")
-                return {'leilaoId': leilao_id[0]}
-
+                try:
+                    statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_id, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
+                    cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["endDate"], info_leilao["artigoId"], userid))
+                    leilao_id = cursor.fetchone()
+                    conn.commit()
+                    conn.close()
+                    return {'leilaoId': leilao_id[0]}
+                except:
+                    conn.rollback()
+                    conn.close()
+                    return {'erro': 'Erro creating auction'}
 
     else:
         conn.close()
@@ -321,11 +340,11 @@ def leilao(leilao_id):
 
                     statement = "UPDATE leilao SET %s = %s WHERE id = %s;"
                     cursor.execute(statement, (tuple(columns), tuple(information), leilao_id,))
-                    cursor.execute("commit;")
+                    conn.commit()
                     conn.close
                     return {'Success': "auction updated!"}
                 except:
-                    cursor.execute("ROLLBACK;")
+                    conn.rollback()
                     conn.close()
                     return {'erro': "Something happened..."}
 
@@ -345,7 +364,7 @@ def leilao(leilao_id):
 
         try:
             cursor.execute(statement, (info_leilao['mensagem'], leilao_id, userid))
-            cursor.execute("COMMIT;")
+            conn.commit()
             conn.close()
             return {f'leilao {leilao_id}' : 'Message added'}
         except:
@@ -395,7 +414,7 @@ def leilao_bid(leilao_id, amount):
             statement = "INSERT INTO licitacao (valor, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
             try:
                 cursor.execute(statement, (amount, leilao_id, userid))
-                cursor.execute("COMMIT;")
+                conn.commit()
             except:
                 conn.close()
                 return {'erro': "couldn't insert value"}
