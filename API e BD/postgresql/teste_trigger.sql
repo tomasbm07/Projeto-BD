@@ -1,24 +1,14 @@
-create trigger trigger_atualizar_precoatual
-after insert on licitacao
+create trigger trigger_guardar_historico
+after update on leilao
 for each row
-execute procedure atualiza_preco_leilao();
+execute procedure guarda_historico_leilao();
 
-create or replace function atualiza_preco_leilao()
+create or replace function guarda_historico_leilao()
 returns trigger
 language plpgsql
 as $$
-declare
-	c1 cursor for
-		select leilao_id, valor from licitacao where id = (select last_value from licitacao_id_seq);
-	v_valor INTEGER;
-	v_leilao_id INTEGER;
 begin
-	open c1;
-	fetch c1 into
-	v_leilao_id, v_valor;
-	UPDATE leilao
-	precoatual = v_valor
-	WHERE id = v_leilao_id;
+	insert into historico (titulo, descricao, precomin, dataacaba, leilao_id) values (old.titulo, old.descricao, old.precomin, old.data, old.id);
 	return new;
 end;
 $$;

@@ -62,6 +62,16 @@ CREATE TABLE mensagens (
 	mensagem VARCHAR(1024),
 	PRIMARY KEY(id)
 );
+CREATE TABLE historico (
+	titulo	 VARCHAR(512) NOT NULL,
+	descricao	 VARCHAR(512),
+	precomin	 INTEGER NOT NULL,
+	dataacaba	 TIMESTAMP NOT NULL,
+	dataalteracao TIMESTAMP NOT NULL DEFAULT NOW(),
+	leilao_id	 INTEGER,
+	PRIMARY KEY(dataalteracao,leilao_id)
+);
+
 
 ALTER TABLE utilizador ADD CONSTRAINT utilizador_fk1 FOREIGN KEY (mensagens_id) REFERENCES mensagens(id);
 ALTER TABLE leilao ADD CONSTRAINT leilao_fk1 FOREIGN KEY (artigos_id) REFERENCES artigos(id);
@@ -72,6 +82,8 @@ ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk1 FOREIGN KEY (leilao_id) REFER
 ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 ALTER TABLE authtokens ADD CONSTRAINT authtokens_fk1 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 
+ALTER TABLE authTokens ADD CONSTRAINT autenticado_fk1 FOREIGN KEY (userid) REFERENCES utilizador(userid);
+ALTER TABLE historico ADD CONSTRAINT historico_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
 
 ----------------------------------
 --------------ARTIGOS-------------	
@@ -145,5 +157,22 @@ CREATE trigger trigger_atualizar_precoatual
 AFTER INSERT ON licitacao
 for each ROW
 EXECUTE PROCEDURE atualiza_preco_leilao();
+
+
+--GUARDAR SNAPSHOT DE LEILAO DEPOIS DE SER EDITADO
+CREATE OR REPLACE FUNCTION guarda_historico_leilao()
+returns trigger
+language plpgsql
+as $$
+begin
+	INSERT INTO historico (titulo, descricao, precomin, dataacaba, leilao_id) VALUES (old.titulo, old.descricao, old.precomin, old.data, old.id);
+	return new;
+end;
+$$;
+
+create trigger trigger_guardar_historico
+after update on leilao
+for each row
+execute procedure guarda_historico_leilao();
 
 ----------------
