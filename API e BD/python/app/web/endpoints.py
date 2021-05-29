@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, Blueprint
 import psycopg2, logging, time
-from psycopg2.extensions import AsIs
+#from psycopg2.extensions import AsIs
 #from . import db_connection, check_token, start_logger
 from . import *
 from .functions import *
@@ -90,7 +90,7 @@ def user():
     else: # POST - registo de utilizador
         logger.info("#### POST - dbproj/user -> Sign up ####")
 
-        statement = """INSERT INTO utilizador (username, email, password) VALUES (%s, %s, %s);"""
+        statement = "INSERT INTO utilizador (username, email, password) VALUES (%s, %s, %s);"
         values = (info_user["username"], info_user["email"], generate_password_hash(info_user["password"], method='sha256'))
 
         #verificar se o username ja esta registado
