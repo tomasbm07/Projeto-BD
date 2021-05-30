@@ -1,3 +1,5 @@
+import re
+from types import prepare_class
 from flask import jsonify, request, Blueprint
 import psycopg2
 from psycopg2.extensions import AsIs
@@ -15,7 +17,6 @@ logger = start_logger()
 """
 -> notificaçoes para um user
     - termino de um leilao em que participou ou criou
-    - mensagens recebidas num leilao criado por si
 
 -> terminaçao de um leilao a uma hora especifica
     - fazer um endpoint q passa por todos os leiloes e vê se ja acabou a hora
@@ -271,7 +272,6 @@ def get_leiloes(keyword):
                 return {'erro': f"Nao encontrado nenhum leilao com artigo com id {keyword}"}
 
 
-#TODO: fazer PUT deste endpoint
 @endpoints.route("/dbproj/leilao/<leilao_id>", methods=['GET', 'PUT', 'POST'], strict_slashes=True)
 def leilao(leilao_id):
     conn = db_connection()
@@ -320,7 +320,6 @@ def leilao(leilao_id):
                 }
 
     # PUT - editar um leilao
-    # TODO - criador do leilao pode responder aos comentarios no mural
     elif request.method == 'PUT':
         logger.info("#### PUT - dbproj/leilao/<leilao_id> -> Atualizar leilao por id ####")
         info = request.get_json()
@@ -537,4 +536,72 @@ def user_messages():
 
     else:
         conn.close()
-        return {'erro' : "user isn\'t logged in"}
+        return {'erro' : "user isn't logged in"}
+
+
+@endpoints.route("/dbproj/<leilao_id>/messages", methods=['PUT', 'GET'], strict_slashes=True)
+def respond_messages(leilao_id):
+
+    conn = db_connection()
+    cursor = conn.cursor()
+    info = request.get_json()
+
+    result = check_token(info["userAuthToken"])
+
+    if result == 'Expired':
+        conn.close()
+        return {'erro' : 'token expired'}
+    elif result == 'Erro':
+        conn.close()
+        return {'erro' : "user isn't logged in"}
+
+    userid = get_userid_from_token(info["userAuthToken"])
+    if userid == 0:
+        return {'erro': "user doesn't exist!"}
+
+    try:   
+        statement = "SELECT utilizador_userid FROM leilao WHERE id = %s;"
+        cursor.execute(statement, (leilao_id,))
+        leilao_userid = cursor.fetchone()
+    except:
+        conn.close()
+        return {'error': "SELECT utilizador_userid FROM leilao"}
+
+    if (leilao_userid[0] != userid):
+        conn.close()
+        return {'error': "You aren't the owner of this auction!"}
+    
+
+    # PUT - responder a uma mensagem
+    if request.method == 'PUT':
+        logger.info("#### PUT - dbproj/<leilao_id>/messages -> Responder a mensagens de um leilao ####")
+
+        statement = "UPDATE comentario SET resposta = %s WHERE id = %s;"
+        try:
+            cursor.execute(statement, (info['resposta'], info['idComentario']))
+            conn.commit()
+            conn.close()
+        except:
+            conn.rollback()
+            conn.close()
+            return {'erro' : 'Erro inserting response'}
+        
+        return {'Sucess' : f"You added a responde to comment with id {info['idComentario']}"}
+       
+    # GET - buscar todas as mensagens
+    elif request.method == 'GET':
+        logger.info("#### GET - dbproj/<leilao_id>/messages -> Buscar todas as mensagens de um leilao ####")
+        mensagens = []
+        try:
+            statement = "SELECT id, comentario, resposta FROM comentario WHERE leilao_id = %s;"
+            cursor.execute(statement, (leilao_id, ))
+            info = cursor.fetchall()
+        except:
+            return {'erro' : 'Erro getting comentarios'}
+        
+        for row in info:
+            mensagens.append([f"id: {row[0]}", f"comentario: {row[1]}", f"resposta: {'' if row[2] == None else row[2]}"])
+        
+        return jsonify(mensagens)
+
+        
