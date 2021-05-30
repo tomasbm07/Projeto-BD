@@ -18,6 +18,7 @@ CREATE TABLE leilao (
 	descricao	 VARCHAR(1024),
 	precomin		 INTEGER NOT NULL,
 	precoatual	 INTEGER NOT NULL DEFAULT 0,
+	id_vencedor	 INTEGER,
 	data		 TIMESTAMP NOT NULL,
 	artigos_id	 INTEGER NOT NULL,
 	utilizador_userid INTEGER NOT NULL,
