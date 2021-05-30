@@ -14,7 +14,6 @@ logger = start_logger()
 #TODO em geral:
 """
 -> notificaçoes para um user
-    - notificaçao de que alguem deu uma bid mais alta
     - termino de um leilao em que participou ou criou
     - mensagens recebidas num leilao criado por si
 
@@ -25,8 +24,6 @@ logger = start_logger()
 
 -> endpoint para um user poder acrescentar os restantes dados ao seu perfil
     - nome e morada
-
--> mudar a relaçao utilizador-mensagem pq n é suposto ter um chave forasteira para as mensagens na tabela do utilizador :)
 
 -> mais alguma coisa?
 """
@@ -438,7 +435,7 @@ def leilao_bid(leilao_id, amount):
                 conn.close()
                 return {'erro': "couldn't insert value"}
             conn.close()
-            return {'Sucess': f"You made a bid on leilao {leilao_id}"}
+            return {'Sucess': f"You made a bid on auction {leilao_id}"}
 
     else:
         conn.close()
@@ -482,6 +479,50 @@ def user_auctions():
             leiloes.append(f"titulo: {row[0]}, descricao: {row[1]}, precoatual: {row[2]}, endDate: {row[3]}")
 
         return jsonify(leiloes)
+
+    else:
+        conn.close()
+        return {'erro' : "user isn\'t logged in"}
+
+
+@endpoints.route("/dbproj/inbox", methods=['GET'], strict_slashes=True)
+def user_messages():
+    logger.info("#### GET - dbproj/inbox -> Listar mensagens de um utilizador ####")
+
+    conn = db_connection()
+    cursor = conn.cursor()
+    token = request.get_json()
+
+    result = check_token(token["userAuthToken"])
+
+    if result == 'Expired':
+        conn.close()
+        return {'erro' : 'token expired'}
+
+    elif result == 'Valid':
+        mensagens = []
+        userid = get_user_from_token(token["userAuthToken"])
+        if userid == 0:
+            return {'erro': "user doesn't exist!"}
+
+        statement = "SELECT mensagem, leilao_id from mensagens where utilizador_userid = %s;"
+
+        try:
+            cursor.execute(statement, (userid,))
+            info = cursor.fetchall()
+        except:
+            conn.close()
+            return {'erro': 'getting messages'}
+
+        conn.close()
+
+        if info == []:
+            return {'erro': "user doesn\'t have any message!"}
+
+        for row in info:
+            mensagens.append(f"{row[0]} in auction {row[1]}")
+
+        return jsonify(mensagens)
 
     else:
         conn.close()

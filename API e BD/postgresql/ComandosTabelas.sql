@@ -9,7 +9,6 @@ CREATE TABLE utilizador (
 	password	 VARCHAR(512) NOT NULL,
 	nome	 VARCHAR(512),
 	morada	 VARCHAR(512),
-	mensagens_id INTEGER,
 	PRIMARY KEY(userid)
 );
 
@@ -60,6 +59,8 @@ CREATE TABLE authtokens (
 CREATE TABLE mensagens (
 	id	 SERIAL,
 	mensagem VARCHAR(1024),
+	leilao_id	 INTEGER,
+	utilizador_userid INTEGER,
 	PRIMARY KEY(id)
 );
 
@@ -74,7 +75,7 @@ CREATE TABLE historico (
 );
 
 
-ALTER TABLE utilizador ADD CONSTRAINT utilizador_fk1 FOREIGN KEY (mensagens_id) REFERENCES mensagens(id);
+
 ALTER TABLE leilao ADD CONSTRAINT leilao_fk1 FOREIGN KEY (artigos_id) REFERENCES artigos(id);
 ALTER TABLE leilao ADD CONSTRAINT leilao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 ALTER TABLE comentario ADD CONSTRAINT comentario_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
@@ -83,6 +84,8 @@ ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk1 FOREIGN KEY (leilao_id) REFER
 ALTER TABLE licitacao ADD CONSTRAINT licitacao_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 ALTER TABLE authtokens ADD CONSTRAINT authtokens_fk1 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 ALTER TABLE historico ADD CONSTRAINT historico_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
+ALTER TABLE mensagens ADD CONSTRAINT mensagens_fk1 FOREIGN KEY (leilao_id) REFERENCES leilao(id);
+ALTER TABLE mensagens ADD CONSTRAINT mensagens_fk2 FOREIGN KEY (utilizador_userid) REFERENCES utilizador(userid);
 
 ----------------------------------
 --------------ARTIGOS-------------	
@@ -173,5 +176,22 @@ create trigger trigger_guardar_historico
 after update on leilao
 for each row
 execute procedure guarda_historico_leilao();
+
+
+--NOTIFICACAO BID ULTRAPASSADA
+create or replace function enviar_notificacao_bid_ultrapassada()
+returns trigger
+language plpgsql
+as $$
+begin
+	insert into mensagens (mensagem, leilao_id, utilizador_userid) values ('Your bid has been overtaked!', new.leilao_id, new.utilizador_userid);
+	return new;
+end;
+$$;
+
+create trigger trigger_guardar_historico
+after insert on licitacao
+for each row
+execute procedure enviar_notificacao_bid_ultrapassada();
 
 ----------------

@@ -1,14 +1,14 @@
 create trigger trigger_guardar_historico
-after update on leilao
+after insert on licitacao
 for each row
-execute procedure guarda_historico_leilao();
+execute procedure enviar_notificacao_bid_ultrapassada();
 
-create or replace function guarda_historico_leilao()
+create or replace function enviar_notificacao_bid_ultrapassada()
 returns trigger
 language plpgsql
 as $$
 begin
-	insert into historico (titulo, descricao, precomin, dataacaba, leilao_id) values (old.titulo, old.descricao, old.precomin, old.data, old.id);
+	insert into mensagens (mensagem, leilao_id, utilizador_userid) values ('Your bid has been overtaked!', new.leilao_id, new.utilizador_userid);
 	return new;
 end;
 $$;
