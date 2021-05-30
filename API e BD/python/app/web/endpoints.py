@@ -12,13 +12,10 @@ logger = start_logger()
 
 #TODO em geral:
 """
--> notificaçoes para um user
-    - termino de um leilao em que participou ou criou
-
 -> terminaçao de um leilao a uma hora especifica
-    - fazer um endpoint q passa por todos os leiloes e vê se ja acabou a hora
-    - sempre q um user tenta licitar num leilao, chamar o endpoint acima para verifar se ja acabou
+    - sempre q um user tenta licitar num leilao, verificar se ja passou a data de fim
     - trigger para limpar tudo assciado a esse leilao: leilao, mensagens, historico, ...
+    - trigger para notificar todos os users envolvidos que o leilao acabou
 
 -> Todos os utilizadores que tiverem escrito num mural passam a ser notificados acerca de mensagens escritas nesse
 mesmo mural
