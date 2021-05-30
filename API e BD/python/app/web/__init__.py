@@ -17,19 +17,16 @@ def db_connection():
 
 
 def start_logger():
-    #Setup Logger
-    logging.basicConfig(filename='logs/log_file.log')
     logger = logging.getLogger('logger')
     logger.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    logger.propagate = False
 
-    # Format
-    # "%Y-%m-%d %H:%M:%S") # not using DATE to simplify
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s]:  %(message)s','%H:%M:%S')
-
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
+    if not logger.handlers:
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s]:  %(message)s','%H:%M:%S')
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
 
     return logger
 

@@ -20,7 +20,11 @@ logger = start_logger()
     - sempre q um user tenta licitar num leilao, chamar o endpoint acima para verifar se ja acabou
     - trigger para limpar tudo assciado a esse leilao: leilao, mensagens, historico, ...
 
--> mais alguma coisa?
+-> Todos os utilizadores que tiverem escrito num mural passam a ser notificados acerca de mensagens escritas nesse
+mesmo mural
+
+->
+
 """
 
 #Default page
