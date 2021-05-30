@@ -5,7 +5,7 @@ from . import *
 
 TOKEN_DURATION = 5 # duraçao do token em horas
 
-def get_user_from_token(token):
+def get_userid_from_token(token):
     conn = db_connection()
     cursor = conn.cursor()
     statement = "SELECT utilizador_userid FROM authtokens WHERE token = %s;"

@@ -73,7 +73,7 @@ titles = [
 for i in range(random.randint(5, 8)):
     PARAMS = {
         "artigoId": random.randint(1, 10),
-        "precoMinimo": random.randint(20, 100),
+        "precomin": random.randint(20, 100),
         "titulo": random.choice(titles),
         "descricao": "Apenas uma descricao generica",
         "endDate" : "2021-05-30 20:30:00",

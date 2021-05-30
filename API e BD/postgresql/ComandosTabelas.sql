@@ -120,6 +120,7 @@ BEGIN
 END;
 $$;
 
+
 --Função que devolve o username apartir de um token
 create or replace FUNCTION get_username_from_token(p_token authTokens.token%type) returns utilizador.username%type
 language plpgsql
@@ -133,6 +134,7 @@ BEGIN
 	return v_username;
 END;
 $$;
+
 
 --ATUALIZAR PRECO TABELA LEILAO NO FIM DE ADICIONAR ENTRADA NA TABELA LICITACAO
 create or replace function atualiza_preco_leilao()
@@ -194,4 +196,27 @@ after insert on licitacao
 for each row
 execute procedure enviar_notificacao_bid_ultrapassada();
 
-----------------
+
+--Notificaçao de mensagens num leilao por si criado
+create or replace function enviar_notificacao_mensagem_leilao()
+returns trigger
+language plpgsql
+as $$
+declare
+leilao_creator integer;
+leilao_title varchar;
+begin
+	select utilizador_userid, titulo from leilao where id = new.leilao_id into leilao_creator, leilao_title;
+	
+	insert into mensagens (mensagem, leilao_id, utilizador_userid) 
+	values (concat('New message on auction "', leilao_title, '" (id = ', new.leilao_id, ')'), new.leilao_id, leilao_creator);
+	
+	return new;
+end;
+$$;
+
+create trigger enviar_notificacao_mensagem
+after insert on comentario
+for each row
+execute procedure enviar_notificacao_mensagem_leilao();
+

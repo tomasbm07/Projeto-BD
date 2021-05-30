@@ -1,5 +1,5 @@
 from flask import jsonify, request, Blueprint
-#import psycopg2
+import psycopg2
 from psycopg2.extensions import AsIs
 from . import *
 from .functions import *
@@ -78,7 +78,6 @@ def user():
                 #se nao tiver um token associado ao user, gerar token e inserir na tabela
                 if aux is None:
                     while True:
-                        #cursor.execute("BEGIN;")
                         token = str(uuid4())
                         try:
                             cursor.execute("INSERT INTO authtokens (utilizador_userid, token) VALUES (%s, %s)", (info[2], token))
@@ -183,13 +182,13 @@ def leilao_create():
                 conn.close()
                 return {'erro': 'artigo nao existe!'}
             else:
-                userid = get_user_from_token(info_leilao["userAuthToken"])
+                userid = get_userid_from_token(info_leilao["userAuthToken"])
                 if userid == 0:
                     conn.close()
                     return {'erro': "user doesn't exist!"}
                 try:
                     statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_id, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
-                    cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precoMinimo"], info_leilao["endDate"], info_leilao["artigoId"], userid))
+                    cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precomin"], info_leilao["endDate"], info_leilao["artigoId"], userid))
                     leilao_id = cursor.fetchone()
                     conn.commit()
                     conn.close()
@@ -321,7 +320,6 @@ def leilao(leilao_id):
                 }
 
     # PUT - editar um leilao
-    # TODO - guardar snapshot
     # TODO - criador do leilao pode responder aos comentarios no mural
     elif request.method == 'PUT':
         logger.info("#### PUT - dbproj/leilao/<leilao_id> -> Atualizar leilao por id ####")
@@ -337,25 +335,35 @@ def leilao(leilao_id):
             return {'erro' : 'token expired'}
 
         elif result == 'Valid':
-            userid = get_user_from_token(info["userAuthToken"])
+            userid = get_userid_from_token(info["userAuthToken"])
             if userid == 0:
                 return {'erro': "user doesn't exist!"}
-            statement = "SELECT utilizador_userid FROM leilao WHERE id = %s;"
-            cursor.execute(statement, (leilao_id))
-            leilao_userid = cursor.fetchone()
 
-            if (leilao_userid != userid):
+            try:   
+                statement = "SELECT utilizador_userid FROM leilao WHERE id = %s;"
+                cursor.execute(statement, (leilao_id))
+                leilao_userid = cursor.fetchone()
+            except:
                 conn.close()
-                return({'error': "You aren\'t the owner of this auction!"})
+                return {'error': "SELECT utilizador_userid FROM leilao"}
+
+            if (leilao_userid[0] != userid):
+                conn.close()
+                return {'error': "You aren't the owner of this auction!"}
             else:
                 try:
                     for key in info.keys():
+                        if key == 'userAuthToken':
+                            continue
                         if key in editable_columns:
                             columns.append(AsIs(key))
                             information.append(info[key])
-
-                    statement = "UPDATE leilao SET %s = %s WHERE id = %s;"
-                    cursor.execute(statement, (tuple(columns), tuple(information), leilao_id,))
+                    if len(columns) != 1:
+                        statement = "UPDATE leilao SET %s = %s WHERE id = %s;"
+                        cursor.execute(statement, (tuple(columns), tuple(information), leilao_id))
+                    else:
+                        statement = "UPDATE leilao SET %s = %s WHERE id = %s;"
+                        cursor.execute(statement, (columns[0], information[0], leilao_id))
                     conn.commit()
                     conn.close
                     return {'Success': "auction updated!"}
@@ -374,7 +382,7 @@ def leilao(leilao_id):
 
         statement = "INSERT INTO comentario (comentario, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
 
-        userid = get_user_from_token(info_leilao['authToken'])
+        userid = get_userid_from_token(info_leilao['authToken'])
         if userid == 0:
             return {'erro': "user doesn't exist!"}
 
@@ -384,6 +392,8 @@ def leilao(leilao_id):
             conn.close()
             return {f'leilao {leilao_id}' : 'Message added'}
         except:
+            conn.rollback()
+            conn.close()
             return {'erro' : 'Erro adding message'}
     
 
@@ -424,7 +434,7 @@ def leilao_bid(leilao_id, amount):
             conn.close()
             return {'erro': "insert an amount bigger then the current bid!"}
         else:
-            userid = get_user_from_token(token["userAuthToken"])
+            userid = get_userid_from_token(token["userAuthToken"])
             if userid == 0:
                 return {'erro': "user doesn't exist!"}
             statement = "INSERT INTO licitacao (valor, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
@@ -432,6 +442,7 @@ def leilao_bid(leilao_id, amount):
                 cursor.execute(statement, (amount, leilao_id, userid))
                 conn.commit()
             except:
+                conn.rollback()
                 conn.close()
                 return {'erro': "couldn't insert value"}
             conn.close()
@@ -458,7 +469,7 @@ def user_auctions():
         return {'erro' : 'token expired'}
 
     elif result == 'Valid':
-        userid = get_user_from_token(token["userAuthToken"])
+        userid = get_userid_from_token(token["userAuthToken"])
         if userid == 0:
             return {'erro': "user doesn't exist!"}
 
@@ -501,7 +512,7 @@ def user_messages():
 
     elif result == 'Valid':
         mensagens = []
-        userid = get_user_from_token(token["userAuthToken"])
+        userid = get_userid_from_token(token["userAuthToken"])
         if userid == 0:
             return {'erro': "user doesn't exist!"}
 
