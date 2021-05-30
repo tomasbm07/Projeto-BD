@@ -20,7 +20,7 @@ logger = start_logger()
 -> Todos os utilizadores que tiverem escrito num mural passam a ser notificados acerca de mensagens escritas nesse
 mesmo mural
 
-->
+-> consultar historico de um leilao
 
 """
 
