@@ -674,3 +674,45 @@ def user_profile():
             conn.close()
             return {'erro' : "Couldn't get profile"}
 
+
+@endpoints.route("/dbproj/leilao-check", methods=['GET'], strict_slashes=True)
+def check_leilao():
+    logger.info("#### GET - dbproj/leilao-check -> Check se ja passou a data de fim algum leilao ####")
+
+    conn = db_connection()
+    cursor = conn.cursor()
+    
+    statement = "SELECT id, data from leilao;"
+    deleted_auctions = 0
+
+    try:
+        cursor.execute(statement)
+        info_leilao = cursor.fetchall()
+    except:
+        conn.close()
+        return{'erro' : 'ERRO SELECT FROM leilao'}
+    
+    if info_leilao is None:
+        return {'erro' : 'There are no auctions yet'}
+    
+    for row in info_leilao:
+        time_leilao = (str(row[1])).split(' ') # "2021-04-28 18:14:43" -> ["2021-04-28", "18:14:43"]
+        time_leilao[0] = time_leilao[0].split('-') # ["2021", "04", "28"]
+        time_leilao[1] = time_leilao[1].split(':') # ["18", "14", "43"]
+
+        time_aux = datetime.datetime(int(time_leilao[0][0]), int(time_leilao[0][1]),int(time_leilao[0][2]), int(time_leilao[1][0]),int(time_leilao[1][1]),int(time_leilao[1][2]))
+        time_now = datetime.datetime.now()
+
+        if time_aux - time_now < datetime.timedelta(0):
+            try:
+                cursor.execute("DELETE FROM leilao WHERE id = %s;", (row[0], ))
+                deleted_auctions += 1
+            except:
+                conn.rollback()
+                conn.close()
+                return {'erro' : 'Erro DELETE auction from leilao'}
+
+    conn.commit()
+    conn.close()
+    return {'Sucess' : f"All auctions checked. Deleted {deleted_auctions} auctions"}
+        

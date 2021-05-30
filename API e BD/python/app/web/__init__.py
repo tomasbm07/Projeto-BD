@@ -1,5 +1,6 @@
 from flask import Flask
 import psycopg2, logging, os
+from time import sleep
 from dotenv import load_dotenv
 
 
@@ -42,4 +43,6 @@ def start_app():
     app.register_blueprint(endpoints, url_prefix='/')
   
     return app
+
+
 
