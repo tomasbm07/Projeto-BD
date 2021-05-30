@@ -17,11 +17,6 @@ logger = start_logger()
     - trigger para limpar tudo assciado a esse leilao: leilao, mensagens, historico, ...
     - trigger para notificar todos os users envolvidos que o leilao acabou
 
--> Todos os utilizadores que tiverem escrito num mural passam a ser notificados acerca de mensagens escritas nesse
-mesmo mural
-
--> consultar historico de um leilao
-
 """
 
 #Default page
@@ -213,7 +208,7 @@ def leiloes():
         info = cursor.fetchall()
 
         for row in info:
-            leiloes.append(f"leilaoId: {row[0]}, descricao: {row[2]}")
+            leiloes.append(f"leilaoId: {row[0]}, titulo: {row[1]}, descricao: {row[2]}")
         
         conn.close()
         return jsonify(leiloes)
@@ -713,3 +708,52 @@ def check_leilao():
     conn.close()
     return {'Sucess' : f"All auctions checked. Deleted {deleted_auctions} auctions"}
         
+
+@endpoints.route("/dbproj/leilao/<leilao_id>/historico", methods=['GET'], strict_slashes=True)
+def leilao_historico(leilao_id):
+    logger.info("#### GET - dbproj/leilao/<leilao_id>/historico -> Ver historico das modificacoes de um leilao ####")
+
+    conn = db_connection()
+    cursor = conn.cursor()
+    token = request.get_json()
+
+    result = check_token(token["userAuthToken"])
+
+    if result == 'Expired':
+        conn.close()
+        return {'erro' : 'token expired'}
+
+    elif result == 'Valid':
+        userid = get_userid_from_token(token["userAuthToken"])
+
+        try:   
+            statement = "SELECT utilizador_userid FROM leilao WHERE id = %s;"
+            cursor.execute(statement, (leilao_id))
+            leilao_owner = cursor.fetchone()
+        except:
+            conn.close()
+            return {'error': "SELECT utilizador_userid FROM leilao"}
+
+        if (leilao_owner[0] != userid):
+            conn.close()
+            return {'error': "You aren't the owner of this auction!"}
+        else:
+            changes = []
+            mensagens = []
+            
+            statement = "SELECT titulo, descricao, precomin, dataacaba, dataalteracao from historico where leilao_id = %s"
+            cursor.execute(statement, (leilao_id,))
+            changes = cursor.fetchall()
+
+            if changes != []:
+                for row in changes:
+                    mensagens.append(f"Titulo: {row[0]}, descricao: {row[1]}, preco minimo: {row[2]}, data que finaliza: {row[3]}, data da alteracao: {row[4]}")
+
+                conn.close()
+                return jsonify(mensagens)
+            else:
+                return{'error': "No changes to show!"}
+
+    else:
+        conn.close()
+        return {'erro' : "user isn\'t logged in"}

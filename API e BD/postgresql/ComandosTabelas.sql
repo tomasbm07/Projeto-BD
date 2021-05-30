@@ -177,6 +177,10 @@ $$;
 create trigger trigger_guardar_historico
 after update on leilao
 for each row
+WHEN (OLD.titulo    IS DISTINCT FROM NEW.titulo
+   OR OLD.descricao IS DISTINCT FROM NEW.descricao
+   OR OLD.precomin IS DISTINCT FROM NEW.precomin
+   OR OLD.data IS DISTINCT FROM NEW.data)
 execute procedure guarda_historico_leilao();
 
 
@@ -239,7 +243,7 @@ declare
 	user_id integer;
 	titulo_leilao leilao.titulo%type := (select titulo from leilao where id = new.leilao_id);
 begin
-	for user_id in select utilizador_userid from comentario where leilao_id = new.leilao_id
+	for user_id in select utilizador_userid from comentario where leilao_id = new.leilao_id and utilizador_userid != new.utilizador_userid
 	LOOP
 		insert into mensagens (mensagem, leilao_id, utilizador_userid) values (CONCAT('New message on ', titulo_leilao), new.leilao_id, user_id);
 	END LOOP;
