@@ -185,8 +185,17 @@ create or replace function enviar_notificacao_bid_ultrapassada()
 returns trigger
 language plpgsql
 as $$
+declare
+	c100 cursor for
+		select utilizador_userid from licitacao where leilao_id = new.leilao_id and data = (select max(data) from licitacao where leilao_id=new.leilao_id and data < (select max(data) from licitacao));
+	v_userid INTEGER;
 begin
-	insert into mensagens (mensagem, leilao_id, utilizador_userid) values ('Your bid has been overtaked!', new.leilao_id, new.utilizador_userid);
+	open c100;
+	fetch c100
+	into v_userid;
+	if (v_userid != 0) then
+		insert into mensagens (mensagem, leilao_id, utilizador_userid) values ('Your bid has been overtaked!', new.leilao_id, v_userid);
+	end if;
 	return new;
 end;
 $$;
