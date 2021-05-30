@@ -1,7 +1,4 @@
-import re
-from types import prepare_class
 from flask import jsonify, request, Blueprint
-import psycopg2
 from psycopg2.extensions import AsIs
 from . import *
 from .functions import *
@@ -22,9 +19,6 @@ logger = start_logger()
     - fazer um endpoint q passa por todos os leiloes e vê se ja acabou a hora
     - sempre q um user tenta licitar num leilao, chamar o endpoint acima para verifar se ja acabou
     - trigger para limpar tudo assciado a esse leilao: leilao, mensagens, historico, ...
-
--> endpoint para um user poder acrescentar os restantes dados ao seu perfil
-    - nome e morada
 
 -> mais alguma coisa?
 """
@@ -114,7 +108,7 @@ def user():
                 conn.close()
                 return {'erro': 'AuthError'}
 
-    else: # POST - registo de utilizador
+    elif request.method == 'POST': # POST - registo de utilizador
         logger.info("#### POST - dbproj/user -> Sign up ####")
 
         statement = "INSERT INTO utilizador (username, email, password) VALUES (%s, %s, %s);"
@@ -566,6 +560,9 @@ def respond_messages(leilao_id):
     except:
         conn.close()
         return {'error': "SELECT utilizador_userid FROM leilao"}
+    
+    if leilao_userid is None:
+        return {'erro' : 'Auction doesnt exist'}
 
     if (leilao_userid[0] != userid):
         conn.close()
@@ -604,4 +601,72 @@ def respond_messages(leilao_id):
         
         return jsonify(mensagens)
 
+
+@endpoints.route("/dbproj/user/profile", methods=['PUT', 'GET'], strict_slashes=True)
+def user_profile():
+
+    conn = db_connection()
+    cursor = conn.cursor()
+    info = request.get_json()
+
+    result = check_token(info["userAuthToken"])
+
+    if result == 'Expired':
+        conn.close()
+        return {'erro' : 'token expired'}
+    elif result == 'Erro':
+        conn.close()
+        return {'erro' : "user isn't logged in"}
+
+    userid = get_userid_from_token(info["userAuthToken"])
+    if userid == 0:
+        return {'erro': "user doesn't exist!"}
+
+    #Atualizar dados do perfil
+    if request.method == 'PUT':
+        logger.info("#### PUT - dbproj/user/profile -> Atualizar dados do perfil ####")
+
+        editable_columns = ['nome', 'morada']
+        columns = []
+        information = []
         
+        statement = "UPDATE utilizador SET %s = %s WHERE userid = %s;"
+        try:
+            for key in info.keys():
+                if key == 'userAuthToken':
+                    continue
+                if key in editable_columns:
+                    columns.append(AsIs(key))
+                    information.append(info[key])
+            if len(columns) != 1:
+                cursor.execute(statement, (tuple(columns), tuple(information), userid))
+            else:
+                cursor.execute(statement, (columns[0], information[0], userid))
+            conn.commit()
+            conn.close
+            return {'Success': "profile updated!"}
+        except:
+            conn.rollback()
+            conn.close()
+            return {'erro': "Something happened..."}
+    #Ver dados do perfil
+    elif request.method == 'GET':
+        logger.info("#### GET - dbproj/user/profile -> Ver dados do perfil ####")
+
+        statement = "SELECT userid, username, email, nome, morada FROM utilizador WHERE userid = %s;"
+
+        try:
+            cursor.execute(statement, (userid,))
+            info = cursor.fetchone()
+            conn.close()
+            return {
+                'userid' : info[0],
+                'username' : info[1],
+                'email' : info[2],
+                'nome' : info[3],
+                'morada' : info[4]
+            }
+        except:
+            conn.close()
+            return {'erro' : "Couldn't get profile"}
+
