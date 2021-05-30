@@ -209,7 +209,7 @@ begin
 	select utilizador_userid, titulo from leilao where id = new.leilao_id into leilao_creator, leilao_title;
 	
 	insert into mensagens (mensagem, leilao_id, utilizador_userid) 
-	values (concat('New message on auction "', leilao_title, '" (id = ', new.leilao_id, ')'), new.leilao_id, leilao_creator);
+	values (concat('New message on auction "', leilao_title, '"'), new.leilao_id, leilao_creator);
 	
 	return new;
 end;
