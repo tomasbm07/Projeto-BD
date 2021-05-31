@@ -13,8 +13,6 @@ logger = start_logger()
 #TODO em geral:
 """
 -> terminaçao de um leilao a uma hora especifica
-    - sempre q um user tenta licitar num leilao, verificar se ja passou a data de fim
-    - trigger para limpar tudo assciado a esse leilao: leilao, mensagens, historico, ...
     - trigger para notificar todos os users envolvidos que o leilao acabou
 
 """
@@ -402,13 +400,16 @@ def leilao_bid(leilao_id, amount):
 
     elif result == 'Valid':
         
-        statement = "SELECT precoatual, precomin FROM leilao WHERE %s = id;"
+        statement = "SELECT precoatual, precomin, id_vencedor FROM leilao WHERE %s = id;"
         cursor.execute(statement, (leilao_id,))
         preco = cursor.fetchone()
        
         if preco is None:
             conn.close()
-            return {'erro': "auction doesn\'t exist!"}
+            return {'error': "auction doesn\'t exist!"}
+        elif preco[2] is not None:
+            conn.close()
+            return {'error': "auction already ended!"}
 
         try:
             amount = int(amount)
@@ -473,7 +474,7 @@ def user_auctions():
         conn.close()
 
         if info == []:
-            return {'erro': "user doesn\'t participate in any auction!"}
+            return {'error': "user doesn\'t participate in any auction!"}
 
         for row in info:
             leiloes.append(f"titulo: {row[0]}, descricao: {row[1]}, precoatual: {row[2]}, endDate: {row[3]}")
@@ -674,8 +675,7 @@ def check_leilao():
     conn = db_connection()
     cursor = conn.cursor()
     
-    statement = "SELECT id, data from leilao;"
-    deleted_auctions = 0
+    statement = "SELECT id, data, id_vencedor from leilao;"
 
     try:
         cursor.execute(statement)
@@ -686,6 +686,8 @@ def check_leilao():
     
     if info_leilao is None:
         return {'erro' : 'There are no auctions yet'}
+
+    mensagens = []
     
     for row in info_leilao:
         time_leilao = (str(row[1])).split(' ') # "2021-04-28 18:14:43" -> ["2021-04-28", "18:14:43"]
@@ -695,18 +697,38 @@ def check_leilao():
         time_aux = datetime.datetime(int(time_leilao[0][0]), int(time_leilao[0][1]),int(time_leilao[0][2]), int(time_leilao[1][0]),int(time_leilao[1][1]),int(time_leilao[1][2]))
         time_now = datetime.datetime.now()
 
-        if time_aux - time_now < datetime.timedelta(0):
+        if time_aux - time_now < datetime.timedelta(0) and row[2] == 0:
             try:
-                cursor.execute("DELETE FROM leilao WHERE id = %s;", (row[0], ))
-                deleted_auctions += 1
+                statement = "SELECT licitacao.utilizador_userid, precoatual, precomin from licitacao, leilao where leilao_id = %s and valor = precoatual;"
+                cursor.execute(statement, (row[0],))
+                winner = cursor.fetchone()
+
+                if winner[1] >= winner[2]:
+                    statement = "UPDATE leilao SET id_vencedor = %s WHERE id = %s;"
+                    cursor.execute(statement, (winner[0], row[0],))
+
+                    cursor.execute("SELECT username from utilizador where userid = %s;", (winner[0],))
+                    winner_username = cursor.fetchone()
+
+                    mensagens.append(f"Auction {row[0]} ended, winner: {winner_username}!")
+                else:
+                    statement = "UPDATE leilao SET id_vencedor = -1 WHERE id = %s;"
+                    cursor.execute(statement, (row[0],))
+
+                    mensagens.append(f"Auction {row[0]} ended, minimum price wasn\'t hit!")
+
             except:
                 conn.rollback()
                 conn.close()
-                return {'erro' : 'Erro DELETE auction from leilao'}
+                return {'error' : 'Something happened...'}
 
     conn.commit()
     conn.close()
-    return {'Sucess' : f"All auctions checked. Deleted {deleted_auctions} auctions"}
+
+    if mensagens == []:
+        return {'None auction ended!': ""}
+    else:
+        return jsonify(mensagens)
         
 
 @endpoints.route("/dbproj/leilao/<leilao_id>/historico", methods=['GET'], strict_slashes=True)
