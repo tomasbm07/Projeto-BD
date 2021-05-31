@@ -83,7 +83,7 @@ for i in range(random.randint(5, 15)):
         "precomin": random.randint(20, 100),
         "titulo": random.choice(titles),
         "descricao": "Apenas uma descricao generica",
-        "endDate" : "2021-05-30 20:30:00",
+        "endDate" : "2021-05-31 20:30:00",
         "userAuthToken": x # random user para autor do leilao
     }   
 
