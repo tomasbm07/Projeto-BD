@@ -13,8 +13,8 @@ logger = start_logger()
 #TODO em geral:
 """
 -> terminaçao de um leilao a uma hora especifica
-    - sempre q um user tenta licitar num leilao, verificar se ja passou a data de fim
-    - trigger para limpar tudo assciado a esse leilao: leilao, mensagens, historico, ...
+    - se um leilao tiver um vencedor, ja acabou
+    - trigger para associar o id do vencedor e fechar o leilao
     - trigger para notificar todos os users envolvidos que o leilao acabou
 
 """
@@ -675,7 +675,7 @@ def check_leilao():
     cursor = conn.cursor()
     
     statement = "SELECT id, data from leilao;"
-    deleted_auctions = 0
+    finished_auctions = 0
 
     try:
         cursor.execute(statement)
@@ -697,8 +697,10 @@ def check_leilao():
 
         if time_aux - time_now < datetime.timedelta(0):
             try:
-                cursor.execute("DELETE FROM leilao WHERE id = %s;", (row[0], ))
-                deleted_auctions += 1
+                #cursor.execute("DELETE FROM leilao WHERE id = %s;", (row[0], ))
+                cursor.execute("SELECT ")
+                conn.commit()
+                finished_auctions += 1
             except:
                 conn.rollback()
                 conn.close()
@@ -706,7 +708,7 @@ def check_leilao():
 
     conn.commit()
     conn.close()
-    return {'Sucess' : f"All auctions checked. Deleted {deleted_auctions} auctions"}
+    return {'Sucess' : f"All auctions checked. Deleted {finished_auctions} auctions"}
         
 
 @endpoints.route("/dbproj/leilao/<leilao_id>/historico", methods=['GET'], strict_slashes=True)
@@ -757,3 +759,4 @@ def leilao_historico(leilao_id):
     else:
         conn.close()
         return {'erro' : "user isn\'t logged in"}
+

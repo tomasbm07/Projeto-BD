@@ -25,6 +25,8 @@ $ grip
 * O projeto corre todo em containners do Docker. Como tal será necessário instalar o [Docker](https://docs.docker.com/get-docker/)
 
 * O Projeto não dispõem de nenhum tipo de interface, seja gráfica ou CLI (command line interface) e por isso é necessário enviar http requests pelo [Curl](https://curl.se/download.html) ou preferencialmente pelo [Postman](https://www.postman.com/) por ter uma interface gráfica que permite, de uma forma mais intuitiva, enviar e ver as respostas dos requests. É também disponibilizado um ficheiro ```.json``` com todos os endpoints, que a nossa API suporta, para dar import no Postman.
+    * Todas as operações em que seja necessário o utilizador estar autenticado, este tem de fornecer o seu token de modo a poder validar o login.
+    * Nos endpoints em que é necessário passar dados para fazer uma atualização, serão alterados os paramêtros enviados pelo json
 
 * Para iniciar o programa correr os seguintes comandos:  
 
@@ -66,7 +68,12 @@ POSTGRES_DB = projetobd
     * Triggers e funções de   
 
 * Alexandre (cerca de 15 horas)
-    * 
-    * 
-    * 
-    * 
+    * cenas
+    * cenas
+    * cenas
+    * cenas
+    * cenas
+    * cenas
+    * cenas
+    * cenas
+    

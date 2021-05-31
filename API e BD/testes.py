@@ -13,7 +13,6 @@ pip3 install names requests threading
 #password para todos os users
 PASSWORD = '123'
 
-
 nomes = []
 ids = []
 tokens = []
@@ -121,7 +120,7 @@ for i in range(random.randint(5, 15)):
     PARAMS = {
         "mensagem" : "Apenas uma mensagem generica",
         "authToken" : user
-}
+    }
     r = requests.post(url = URL, json = PARAMS)
     data = r.json()
     if 'erro' in data.keys():
@@ -131,6 +130,7 @@ for i in range(random.randint(5, 15)):
         print(f"{user} adicionou uma mensagem no leilao {id}")
 
 
+"""
 def init_check_auction_routine():
     #daemon thread die when programa ends
     thread = threading.Thread(target = leilao_routine, daemon = False)
@@ -152,3 +152,4 @@ def leilao_routine():
             print(f"{data['Sucess']}")
 
 init_check_auction_routine()
+"""
