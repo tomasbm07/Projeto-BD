@@ -10,12 +10,6 @@ endpoints = Blueprint('endpoints', __name__)
 
 logger = start_logger()
 
-#TODO em geral:
-"""
--> terminaçao de um leilao a uma hora especifica
-    - trigger para notificar todos os users envolvidos que o leilao acabou
-
-"""
 
 #Default page
 @endpoints.route('/dbproj/') 
@@ -339,7 +333,7 @@ def leilao(leilao_id):
 
             try:   
                 statement = "SELECT utilizador_userid FROM leilao WHERE id = %s;"
-                cursor.execute(statement, (leilao_id))
+                cursor.execute(statement, (leilao_id, ))
                 leilao_userid = cursor.fetchone()
             except:
                 conn.close()
