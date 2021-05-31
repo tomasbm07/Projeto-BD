@@ -367,21 +367,29 @@ def leilao(leilao_id):
     elif request.method == 'POST':
         info_leilao = request.get_json()
 
-        statement = "INSERT INTO comentario (comentario, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"
-
         userid = get_userid_from_token(info_leilao['authToken'])
         if userid == 0:
             return {'erro': "user doesn't exist!"}
 
-        try:
-            cursor.execute(statement, (info_leilao['mensagem'], leilao_id, userid))
-            conn.commit()
+        statement = "SELECT id_vencedor FROM leilao WHERE %s = id;"
+        cursor.execute(statement, (leilao_id,))
+        winner = cursor.fetchone()
+
+        statement = "INSERT INTO comentario (comentario, leilao_id, utilizador_userid) VALUES (%s, %s, %s);"        
+
+        if winner[0] is None:
+            try:
+                cursor.execute(statement, (info_leilao['mensagem'], leilao_id, userid))
+                conn.commit()
+                conn.close()
+                return {f'leilao {leilao_id}' : 'Message added'}
+            except:
+                conn.rollback()
+                conn.close()
+                return {'erro' : 'Erro adding message'}
+        else:
             conn.close()
-            return {f'leilao {leilao_id}' : 'Message added'}
-        except:
-            conn.rollback()
-            conn.close()
-            return {'erro' : 'Erro adding message'}
+            return {'error': "auction already ended!"}
     
 
 @endpoints.route("/dbproj/licitar/<leilao_id>/<amount>", methods=['GET'], strict_slashes=True)

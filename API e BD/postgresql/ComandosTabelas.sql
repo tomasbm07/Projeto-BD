@@ -213,30 +213,6 @@ for each row
 execute procedure enviar_notificacao_bid_ultrapassada();
 
 
---Notificaçao de mensagens num leilao por si criado
-create or replace function enviar_notificacao_mensagem_leilao()
-returns trigger
-language plpgsql
-as $$
-declare
-leilao_creator integer;
-leilao_title varchar;
-begin
-	select utilizador_userid, titulo from leilao where id = new.leilao_id into leilao_creator, leilao_title;
-	
-	insert into mensagens (mensagem, leilao_id, utilizador_userid) 
-	values (concat('New message ', leilao_title), new.leilao_id, leilao_creator);
-	
-	return new;
-end;
-$$;
-
-create trigger enviar_notificacao_mensagem
-after insert on comentario
-for each row
-execute procedure enviar_notificacao_mensagem_leilao();
-
-
 --NOTIFICACAO DE MENSAGENS PARA TODOS OS UTILIZADORES QUE PARTICIPEM NO MURAL DE UM LEILAO
 create or replace function enviar_notificacao_mensagem()
 returns trigger
@@ -245,11 +221,13 @@ as $$
 declare
 	user_id integer;
 	titulo_leilao leilao.titulo%type := (select titulo from leilao where id = new.leilao_id);
+	owner_leilao leilao.utilizador_userid%type := (select utilizador_userid from leilao where id = new.leilao_id);
 begin
 	for user_id in select utilizador_userid from comentario where leilao_id = new.leilao_id and utilizador_userid != new.utilizador_userid
 	LOOP
 		insert into mensagens (mensagem, leilao_id, utilizador_userid) values (CONCAT('New message on ', titulo_leilao), new.leilao_id, user_id);
 	END LOOP;
+	insert into mensagens (mensagem, leilao_id, utilizador_userid) values (CONCAT('New message on your auction, ', titulo_leilao), new.leilao_id, owner_leilao);
 	return new;
 end;
 $$;
