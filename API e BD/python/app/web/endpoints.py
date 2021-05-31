@@ -175,6 +175,17 @@ def leilao_create():
                 if userid == 0:
                     conn.close()
                     return {'erro': "user doesn't exist!"}
+            
+                time_leilao = (str(info_leilao['endDate'])).split(' ') # "2021-04-28 18:14:43" -> ["2021-04-28", "18:14:43"]
+                time_leilao[0] = time_leilao[0].split('-') # ["2021", "04", "28"]
+                time_leilao[1] = time_leilao[1].split(':') # ["18", "14", "43"]
+
+                end_date = datetime.datetime(int(time_leilao[0][0]), int(time_leilao[0][1]),int(time_leilao[0][2]), int(time_leilao[1][0]),int(time_leilao[1][1]),int(time_leilao[1][2]))
+                time_now = datetime.datetime.now()
+
+                if end_date - time_now < datetime.timedelta(0):
+                    return {'erro' : 'Data ja passou'}
+
                 try:
                     statement = "INSERT INTO leilao (titulo, descricao, precomin, data, artigos_id, utilizador_userid) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;"
                     cursor.execute(statement, (info_leilao["titulo"], info_leilao["descricao"], info_leilao["precomin"], info_leilao["endDate"], info_leilao["artigoId"], userid))
@@ -719,7 +730,7 @@ def check_leilao():
                     cursor.execute("SELECT username from utilizador where userid = %s;", (winner[0],))
                     winner_username = cursor.fetchone()
 
-                    mensagens.append(f"Auction {row[0]} ended, winner: {winner_username}!")
+                    mensagens.append(f"Auction {row[0]} ended, winner: {winner_username[0]}!")
                 else:
                     statement = "UPDATE leilao SET id_vencedor = -1 WHERE id = %s;"
                     cursor.execute(statement, (row[0],))
