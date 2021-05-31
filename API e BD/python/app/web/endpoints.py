@@ -521,7 +521,7 @@ def user_messages():
             return {'erro': "user doesn\'t have any message!"}
 
         for row in info:
-            mensagens.append(f"{row[0]} in auction {row[1]}")
+            mensagens.append(f"{row[0]} - id {row[1]}")
 
         return jsonify(mensagens)
 
@@ -697,13 +697,13 @@ def check_leilao():
         time_aux = datetime.datetime(int(time_leilao[0][0]), int(time_leilao[0][1]),int(time_leilao[0][2]), int(time_leilao[1][0]),int(time_leilao[1][1]),int(time_leilao[1][2]))
         time_now = datetime.datetime.now()
 
-        if time_aux - time_now < datetime.timedelta(0) and row[2] == 0:
+        if time_aux - time_now < datetime.timedelta(0):
             try:
-                statement = "SELECT licitacao.utilizador_userid, precoatual, precomin from licitacao, leilao where leilao_id = %s and valor = precoatual;"
+                statement = "SELECT licitacao.utilizador_userid from licitacao, leilao where leilao_id = %s and valor = precoatual;"
                 cursor.execute(statement, (row[0],))
                 winner = cursor.fetchone()
 
-                if winner[1] >= winner[2]:
+                if winner is not None:
                     statement = "UPDATE leilao SET id_vencedor = %s WHERE id = %s;"
                     cursor.execute(statement, (winner[0], row[0],))
 
@@ -716,7 +716,6 @@ def check_leilao():
                     cursor.execute(statement, (row[0],))
 
                     mensagens.append(f"Auction {row[0]} ended, minimum price wasn\'t hit!")
-
             except:
                 conn.rollback()
                 conn.close()
