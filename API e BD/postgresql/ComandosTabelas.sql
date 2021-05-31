@@ -18,6 +18,7 @@ CREATE TABLE leilao (
 	descricao	 VARCHAR(1024),
 	precomin		 INTEGER NOT NULL,
 	precoatual	 INTEGER NOT NULL DEFAULT 0,
+	id_vencedor	 INTEGER,
 	data		 TIMESTAMP NOT NULL,
 	artigos_id	 INTEGER NOT NULL,
 	utilizador_userid INTEGER NOT NULL,
@@ -177,6 +178,10 @@ $$;
 create trigger trigger_guardar_historico
 after update on leilao
 for each row
+WHEN (OLD.titulo    IS DISTINCT FROM NEW.titulo
+   OR OLD.descricao IS DISTINCT FROM NEW.descricao
+   OR OLD.precomin IS DISTINCT FROM NEW.precomin
+   OR OLD.data IS DISTINCT FROM NEW.data)
 execute procedure guarda_historico_leilao();
 
 
@@ -218,7 +223,7 @@ begin
 	select utilizador_userid, titulo from leilao where id = new.leilao_id into leilao_creator, leilao_title;
 	
 	insert into mensagens (mensagem, leilao_id, utilizador_userid) 
-	values (concat('New message on auction "', leilao_title, '"'), new.leilao_id, leilao_creator);
+	values (concat('New message ', leilao_title), new.leilao_id, leilao_creator);
 	
 	return new;
 end;
@@ -229,3 +234,25 @@ after insert on comentario
 for each row
 execute procedure enviar_notificacao_mensagem_leilao();
 
+
+--NOTIFICACAO DE MENSAGENS PARA TODOS OS UTILIZADORES QUE PARTICIPEM NO MURAL DE UM LEILAO
+create or replace function enviar_notificacao_mensagem()
+returns trigger
+language plpgsql
+as $$
+declare
+	user_id integer;
+	titulo_leilao leilao.titulo%type := (select titulo from leilao where id = new.leilao_id);
+begin
+	for user_id in select utilizador_userid from comentario where leilao_id = new.leilao_id and utilizador_userid != new.utilizador_userid
+	LOOP
+		insert into mensagens (mensagem, leilao_id, utilizador_userid) values (CONCAT('New message on ', titulo_leilao), new.leilao_id, user_id);
+	END LOOP;
+	return new;
+end;
+$$;
+
+create trigger trigger_enviar_notificacao_mensagem
+after insert or update on comentario
+for each row
+execute procedure enviar_notificacao_mensagem();
