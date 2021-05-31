@@ -65,15 +65,17 @@ POSTGRES_DB = projetobd
     * Escrever comentarios / repostas num leilão
     * Atualizar os dados, do perfil, que não são obrigatórios no registo
     * Ver perfil
-    * Triggers e funções de   
+    * Verificar se passou a data de término de algum leilão
+    * Triggers e funções em pl/pgsql
 
 * Alexandre (cerca de 15 horas)
-    * cenas
-    * cenas
-    * cenas
-    * cenas
-    * cenas
-    * cenas
-    * cenas
-    * cenas
+    * Criar e atualizar leilão
+    * Listar todos os leilões
+    * Pesquisa de leilões por id ou título de artigo
+    * Editar um leilão
+    * Licitar num leilão
+    * Listar leilões que um utilizador tenha atividade
+    * Ver notificações de um utilizador
+    * Ver histórico de alterações de um leilão
+    * Triggers e funções em pl/pgsql
     
